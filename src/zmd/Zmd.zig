@@ -2,55 +2,67 @@ const std = @import("std");
 
 const Node = @import("Node.zig");
 const Parser = @import("Parser.zig");
+const tokens = @import("tokens.zig");
+const html = @import("html.zig");
 
 allocator: std.mem.Allocator,
-nodes: std.ArrayList(Node),
+arena: std.heap.ArenaAllocator,
+nodes: std.ArrayList(*Node),
+state: enum { initial, parsed } = .initial,
+input: []const u8 = undefined,
 
 const Zmd = @This();
 
-/// Initialize a new Zmd markdown AST.
+/// Initialize a new Zmd Markdown AST.
 pub fn init(allocator: std.mem.Allocator) Zmd {
     return .{
         .allocator = allocator,
-        .nodes = std.ArrayList(Node).init(allocator),
+        .arena = std.heap.ArenaAllocator.init(allocator),
+        .nodes = std.ArrayList(*Node).init(allocator),
     };
 }
 
 /// Deinitialize and free allocated memory.
 pub fn deinit(self: *Zmd) void {
     self.nodes.deinit();
+    self.arena.deinit();
 }
 
-/// Parse a markdown string into an AST.
+/// Parse a Markdown string into an AST.
 pub fn parse(self: *Zmd, input: []const u8) !void {
-    var parser = Parser.init(self.allocator, input);
+    if (self.state != .initial) unreachable;
+
+    const allocator = self.arena.allocator();
+
+    var parser = Parser.init(allocator, input);
     defer parser.deinit();
 
     try parser.tokenize();
 
-    // var root =
-    for (parser.tokens.items) |token| {
-        // switch (token.element.type) {
-        //     .h1 => {},
-        // }
-        std.debug.print("type: {s}, token: {s}\n", .{ @tagName(token.element.type), input[token.start..token.end] });
-        try self.nodes.append(.{ .content = "Header" });
-    }
+    const root = try parser.parse();
+    try self.nodes.append(root);
+
+    self.input = input;
+
+    self.state = .parsed;
 }
 
-pub const ZmdIterator = struct {
-    index: usize = 0,
-    nodes: std.ArrayList(Node),
+/// Translate a parsed Markdown AST to HTML.
+pub fn toHtml(self: *const Zmd, fragments: type) ![]const u8 {
+    if (self.state != .parsed) unreachable;
 
-    pub fn next(self: *ZmdIterator) ?Node {
-        if (self.index >= self.nodes.items.len) return null;
-        const node = self.nodes.items[self.index];
-        self.index += 1;
-        return node;
-    }
-};
+    var arena = std.heap.ArenaAllocator.init(self.allocator);
+    defer arena.deinit();
 
-/// Return an iterator that walks the parsed AST and yields `?Zmd.Node`.
-pub fn walk(self: *const Zmd) ZmdIterator {
-    return .{ .nodes = self.nodes };
+    const allocator = arena.allocator();
+    var buf = std.ArrayList(u8).init(allocator);
+    const base_writer = buf.writer();
+    var bw = std.io.bufferedWriter(base_writer);
+    const writer = bw.writer();
+
+    try self.nodes.items[0].toHtml(allocator, self.input, fragments, writer, 0);
+
+    try bw.flush();
+
+    return try self.allocator.dupe(u8, buf.items);
 }
