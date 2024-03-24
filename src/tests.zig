@@ -20,7 +20,7 @@ test "parse markdown and translate to HTML" {
         \\
         \\a paragraph
         \\
-        \\```
+        \\```zig
         \\some code
         \\```
         \\some more text with a `code` fragment
@@ -30,15 +30,18 @@ test "parse markdown and translate to HTML" {
     defer std.testing.allocator.free(html);
 
     try std.testing.expectEqualStrings(
-        \\<!DOCTYPE html><html><body><div><h1> Header</h1>
-        \\<h2> Sub-header</h2>
-        \\<h3> Sub-sub-header</h3>
-        \\<p>some text in <b>bold</b>
-        \\ and <i>italic</i>
-        \\</p><p>a paragraph</p><pre style="font-family: Monospace">some code
-        \\</pre>
-        \\some more text with a <span style="font-family: Monospace">code</span>
-        \\ fragment</div></body></html>
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><h1>Header</h1>
+        \\<h2>Sub-header</h2>
+        \\<h3>Sub-sub-header</h3>
+        \\<p>some text in <b>bold</b> and <i>italic</i></p>
+        \\<p>a paragraph</p>
+        \\<pre class="language-zig" style="font-family: Monospace;"><code>some code</code></pre><p></p>
+        \\some more text with a <span style="font-family: Monospace">code</span> fragment</main>
+        \\</body>
+        \\</html>
         \\
     , html);
 }

@@ -1,6 +1,6 @@
 # Zmd
 
-_Zmd_ is a [Markdown](https://en.wikipedia.org/wiki/Markdown) parser written in [Zig](https://ziglang.org/).
+_Zmd_ is a [Markdown](https://en.wikipedia.org/wiki/Markdown) parser and _HTML_ translator written in 100% pure [Zig](https://ziglang.org/) with zero dependencies.
 
 _Zmd_ is currently very incomplete and in alpha stage. It is used by the [Jetzig web framework](https://www.jetzig.dev/) and will be extended as features are needed.
 
@@ -12,40 +12,65 @@ const std = @import("std");
 const Zmd = @import("zmd").Zmd;
 const fragments = @import("zmd").html.DefaultFragments;
 
-var zmd = Zmd.init(std.testing.allocator);
-defer zmd.deinit();
+pub fn main() !void {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
 
-try zmd.parse(
-    \\# Header
-    \\## Sub-header
-    \\### Sub-sub-header
-    \\
-    \\some text in **bold** and _italic_
-    \\
-    \\a paragraph
-    \\
-    \\```
-    \\some code
-    \\```
-    \\some more text with a `code` fragment
-);
+    try zmd.parse(
+        \\# Header
+        \\## Sub-header
+        \\### Sub-sub-header
+        \\
+        \\some text in **bold** and _italic_
+        \\
+        \\a paragraph
+        \\
+        \\```zig
+        \\some code
+        \\```
+        \\some more text with a `code` fragment
+    );
 
-const html = try zmd.toHtml(fragments);
-defer std.testing.allocator.free(html);
-
-try std.testing.expectEqualStrings(
-    \\<!DOCTYPE html><html><body><div><h1> Header</h1>
-    \\<h2> Sub-header</h2>
-    \\<h3> Sub-sub-header</h3>
-    \\<p>some text in <b>bold</b>
-    \\ and <i>italic</i>
-    \\</p><p>a paragraph</p><pre style="font-family: Monospace">some code
-    \\</pre>
-    \\some more text with a <span style="font-family: Monospace">code</span>
-    \\ fragment</div></body></html>
-    \\
-, html);
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+}
 ```
+
+### Customization
+
+The default _HTML_ formatter provides a set of fragments that can be overridden. Fragments can be either:
+
+* A two-element tuple containing an open and close tag (e.g. `.{ "<div>", </div>" }`);
+* A function that receives an allocator, the current node, and the rendered content that must return a `[]const u8`.
+
+Simply define a struct with the appropriate declarations of either type and _Zmd_ will use the provided fragments, falling back to defaults for anything that is not defined.
+
+```zig
+const MyFragments = struct {
+    pub const h1 = .{ "<h1 class='text-xl font-bold'>", "</h1>\n" };
+
+    pub fn block(allocator: std.mem.Allocator, node: Node, content: []const u8) ![]const u8 {
+        const style = "font-family: Monospace;";
+
+        return if (node.meta) |meta|
+            std.fmt.allocPrint(allocator,
+                \\<pre class="language-{s}" style="{s}"><code>{s}</code></pre>
+            , .{ meta, style, content })
+        else
+            std.fmt.allocPrint(allocator,
+                \\<pre style="{s}"><code>{s}</code></pre>
+            , .{ style, content });
+    }
+}
+```
+
+And then:
+
+```zig
+const html = try zmd.toHtml(MyFragments);
+```
+
+See [src/zmd/html.zig](src/zmd/html.zig) for the full reference.
 
 ## License
 

@@ -6,7 +6,7 @@ const html = @import("html.zig");
 const Node = @This();
 
 token: tokens.Token,
-content: []const u8 = "",
+meta: ?[]const u8 = null,
 children: std.ArrayList(*Node),
 index: usize = 0,
 
@@ -25,25 +25,51 @@ pub fn toHtml(
         inline else => |element_type| getFormatter(fragments, @tagName(element_type)),
     };
 
-    if (formatter) |capture| {
-        if (self.children.items.len > 0) try writer.writeAll(capture[0]);
-    }
+    var buf = std.ArrayList(u8).init(allocator);
+    const buf_writer = buf.writer();
 
     if (self.token.element.type == .text) {
-        try writer.writeAll(input[self.token.start..self.token.end]);
+        try buf_writer.writeAll(input[self.token.start..self.token.end]);
     }
 
     for (self.children.items) |node| {
-        try node.toHtml(allocator, input, fragments, writer, level + 1);
+        try node.toHtml(allocator, input, fragments, buf_writer, level + 1);
     }
 
+    const content = if (self.token.element.trim)
+        std.mem.trim(u8, buf.items, &std.ascii.whitespace)
+    else
+        buf.items;
     if (formatter) |capture| {
-        if (self.children.items.len > 0) try writer.writeAll(capture[1]);
+        switch (capture) {
+            .function => |function| try writer.writeAll(try function(allocator, self, content)),
+            .array => |array| {
+                try writer.writeAll(array[0]);
+                try writer.writeAll(content);
+                try writer.writeAll(array[1]);
+            },
+        }
     }
 }
 
 // Try to find a formatter from the provided fragments struct, fall back to defaults.
-fn getFormatter(fragments: type, comptime element_type: []const u8) [2][]const u8 {
-    if (@hasDecl(fragments, element_type)) return @field(fragments, element_type);
-    return @field(html.DefaultFragments, element_type);
+fn getFormatter(fragments: type, comptime element_type: []const u8) Formatter {
+    const formatter = if (@hasDecl(fragments, element_type))
+        @field(fragments, element_type)
+    else
+        @field(html.DefaultFragments, element_type);
+
+    switch (@typeInfo(@TypeOf(formatter))) {
+        .Fn => return Formatter{ .function = &formatter },
+        .Struct => return Formatter{ .array = formatter },
+        else => unreachable,
+    }
 }
+
+const Formatter = union(enum) {
+    function: FormatFunction,
+    array: FormatArray,
+};
+
+const FormatFunction = *const fn (std.mem.Allocator, Node, []const u8) anyerror![]const u8;
+const FormatArray = [2][]const u8;

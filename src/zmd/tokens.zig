@@ -21,15 +21,16 @@ pub const Element = struct {
     type: ElementType,
     syntax: []const u8 = "",
     close: ElementType = .none,
+    trim: bool = false,
 };
 
 pub const elements = [_]Element{
-    .{ .type = .h6, .syntax = "######", .close = .linebreak },
-    .{ .type = .h5, .syntax = "#####", .close = .linebreak },
-    .{ .type = .h4, .syntax = "####", .close = .linebreak },
-    .{ .type = .h3, .syntax = "###", .close = .linebreak },
-    .{ .type = .h2, .syntax = "##", .close = .linebreak },
-    .{ .type = .h1, .syntax = "#", .close = .linebreak },
+    .{ .type = .h6, .syntax = "######", .close = .linebreak, .trim = true },
+    .{ .type = .h5, .syntax = "#####", .close = .linebreak, .trim = true },
+    .{ .type = .h4, .syntax = "####", .close = .linebreak, .trim = true },
+    .{ .type = .h3, .syntax = "###", .close = .linebreak, .trim = true },
+    .{ .type = .h2, .syntax = "##", .close = .linebreak, .trim = true },
+    .{ .type = .h1, .syntax = "#", .close = .linebreak, .trim = true },
     .{ .type = .bold, .syntax = "**", .close = .bold },
     .{ .type = .italic, .syntax = "_", .close = .italic },
     .{ .type = .block, .syntax = "```", .close = .block },

@@ -115,15 +115,18 @@ fn parseChildNodes(self: *Parser, start: usize, node: *Node) !bool {
     const end = self.getCloseIndex(index) orelse index;
     while (index < end) {
         const child_node = try self.createNode(self.tokens.items[index + 1]);
+        self.appendBlockMeta(child_node, index);
+        self.nullifyToken(end);
         index += 1;
         if (index >= self.tokens.items.len - 1) break;
         if (try self.parseChildNodes(index, child_node)) {
-            try node.children.append(child_node);
+            if (child_node.token.element.type != .none) try node.children.append(child_node);
         }
     }
     return true;
 }
 
+/// Locate the token index for the syntax that closes the current token.
 fn getCloseIndex(self: Parser, start: usize) ?usize {
     if (start >= self.tokens.items.len - 1) return null;
     const match_token = self.tokens.items[start];
@@ -142,6 +145,28 @@ fn appendText(self: *Parser, start: usize, end: usize) !void {
         .start = start,
         .end = end,
     });
+}
+
+// Append a meta value to a `block` node. Replace dangling text token with a `.none` element.
+fn appendBlockMeta(self: *Parser, node: *Node, index: usize) void {
+    if (node.token.element.type != .block) return;
+    if (index + 2 >= self.tokens.items.len) return;
+
+    const next_token = self.tokens.items[index + 2];
+
+    if (next_token.element.type != .text) return;
+
+    node.meta = self.input[next_token.start..next_token.end];
+    self.nullifyToken(index + 2);
+}
+
+/// Nullify a token. Used to prevent close tokens from being included in generated AST.
+fn nullifyToken(self: *Parser, index: usize) void {
+    self.tokens.replaceRangeAssumeCapacity(index, 1, &[_]tokens.Token{.{
+        .element = .{ .type = .none },
+        .start = self.tokens.items[index].start,
+        .end = self.tokens.items[index].end,
+    }});
 }
 
 // Create a new node on the heap.
