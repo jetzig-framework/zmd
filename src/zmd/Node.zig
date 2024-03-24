@@ -6,13 +6,16 @@ const html = @import("html.zig");
 const Node = @This();
 
 token: tokens.Token,
+content: []const u8 = "",
 meta: ?[]const u8 = null,
+href: ?[]const u8 = null,
+title: ?[]const u8 = null,
 children: std.ArrayList(*Node),
 index: usize = 0,
 
 /// Recursively translate a node into HTML.
 pub fn toHtml(
-    self: Node,
+    self: *Node,
     allocator: std.mem.Allocator,
     input: []const u8,
     fragments: type,
@@ -29,23 +32,24 @@ pub fn toHtml(
     const buf_writer = buf.writer();
 
     if (self.token.element.type == .text) {
-        try buf_writer.writeAll(input[self.token.start..self.token.end]);
+        try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
     }
 
     for (self.children.items) |node| {
         try node.toHtml(allocator, input, fragments, buf_writer, level + 1);
     }
 
-    const content = if (self.token.element.trim)
+    self.content = if (self.token.element.trim)
         std.mem.trim(u8, buf.items, &std.ascii.whitespace)
     else
         buf.items;
+
     if (formatter) |capture| {
         switch (capture) {
-            .function => |function| try writer.writeAll(try function(allocator, self, content)),
+            .function => |function| try writer.writeAll(try function(allocator, self.*)),
             .array => |array| {
                 try writer.writeAll(array[0]);
-                try writer.writeAll(content);
+                try writer.writeAll(self.content);
                 try writer.writeAll(array[1]);
             },
         }
@@ -56,8 +60,10 @@ pub fn toHtml(
 fn getFormatter(fragments: type, comptime element_type: []const u8) Formatter {
     const formatter = if (@hasDecl(fragments, element_type))
         @field(fragments, element_type)
+    else if (@hasDecl(html.DefaultFragments, element_type))
+        @field(html.DefaultFragments, element_type)
     else
-        @field(html.DefaultFragments, element_type);
+        html.DefaultFragments.default;
 
     switch (@typeInfo(@TypeOf(formatter))) {
         .Fn => return Formatter{ .function = &formatter },
@@ -71,5 +77,5 @@ const Formatter = union(enum) {
     array: FormatArray,
 };
 
-const FormatFunction = *const fn (std.mem.Allocator, Node, []const u8) anyerror![]const u8;
+const FormatFunction = *const fn (std.mem.Allocator, Node) anyerror![]const u8;
 const FormatArray = [2][]const u8;

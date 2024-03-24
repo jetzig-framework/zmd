@@ -41,25 +41,35 @@ pub fn main() !void {
 The default _HTML_ formatter provides a set of fragments that can be overridden. Fragments can be either:
 
 * A two-element tuple containing an open and close tag (e.g. `.{ "<div>", </div>" }`);
-* A function that receives an allocator, the current node, and the rendered content that must return a `[]const u8`.
+* A function that receives `std.mem.Allocator` and `zmd.Node`, returning `![]const u8`.
 
 Simply define a struct with the appropriate declarations of either type and _Zmd_ will use the provided fragments, falling back to defaults for anything that is not defined.
+
+Some node types provie special attributes such as:
+
+* `meta` - provided on `block` elements. This is the language specifier (`zig`) in this example:
+````
+```zig
+if (true) std.debug.print("some zig code");
+```
+````
+* `href`, `title` - provided on `image` and `link` elements.
 
 ```zig
 const MyFragments = struct {
     pub const h1 = .{ "<h1 class='text-xl font-bold'>", "</h1>\n" };
 
-    pub fn block(allocator: std.mem.Allocator, node: Node, content: []const u8) ![]const u8 {
+    pub fn block(allocator: std.mem.Allocator, node: Node) ![]const u8 {
         const style = "font-family: Monospace;";
 
         return if (node.meta) |meta|
             std.fmt.allocPrint(allocator,
                 \\<pre class="language-{s}" style="{s}"><code>{s}</code></pre>
-            , .{ meta, style, content })
+            , .{ meta, style, node.content })
         else
             std.fmt.allocPrint(allocator,
                 \\<pre style="{s}"><code>{s}</code></pre>
-            , .{ style, content });
+            , .{ style, node.content });
     }
 }
 ```

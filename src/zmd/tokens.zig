@@ -12,6 +12,13 @@ pub const ElementType = enum {
     italic,
     block,
     code,
+    image,
+    link,
+    image_title,
+    link_title,
+    title_close,
+    href,
+    href_close,
     linebreak,
     none,
     eof,
@@ -35,6 +42,11 @@ pub const elements = [_]Element{
     .{ .type = .italic, .syntax = "_", .close = .italic },
     .{ .type = .block, .syntax = "```", .close = .block },
     .{ .type = .code, .syntax = "`", .close = .code },
+    .{ .type = .image_title, .syntax = "![", .close = .title_close },
+    .{ .type = .link_title, .syntax = "[", .close = .title_close },
+    .{ .type = .title_close, .syntax = "]" },
+    .{ .type = .href, .syntax = "(", .close = .href_close },
+    .{ .type = .href_close, .syntax = ")" },
 };
 
 pub const Linebreak = Element{ .type = .linebreak };

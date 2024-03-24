@@ -56,20 +56,7 @@ pub fn tokenize(self: *Parser) !void {
 
     while (index < self.input.len) {
         if (self.firstToken(index)) |token| {
-            if (previous_token) |prev_token| {
-                if (prev_token.end < token.start) {
-                    if (prev_token.element.type == .linebreak or prev_token.element.type == .root) {
-                        try self.tokens.append(.{
-                            .element = tokens.Paragraph,
-                            .start = token.start,
-                            .end = token.end,
-                        });
-                        try self.appendText(prev_token.end, token.start);
-                    } else {
-                        try self.appendText(prev_token.end, token.start);
-                    }
-                }
-            }
+            if (previous_token) |prev_token| try self.maybeTokenizeText(prev_token, token);
             try self.tokens.append(token);
             previous_token = token;
             index = token.end;
@@ -115,7 +102,12 @@ fn parseChildNodes(self: *Parser, start: usize, node: *Node) !bool {
     const end = self.getCloseIndex(index) orelse index;
     while (index < end) {
         const child_node = try self.createNode(self.tokens.items[index + 1]);
-        self.appendBlockMeta(child_node, index);
+        switch (child_node.token.element.type) {
+            .link_title => self.parseLink(child_node, index + 1, .link),
+            .image_title => self.parseLink(child_node, index + 1, .image),
+            .block => self.parseBlock(child_node, index, self.getCloseIndex(index + 1)),
+            else => {},
+        }
         self.nullifyToken(end);
         index += 1;
         if (index >= self.tokens.items.len - 1) break;
@@ -138,6 +130,25 @@ fn getCloseIndex(self: Parser, start: usize) ?usize {
 
     return null;
 }
+
+// Convert text into a paragraph if it proceeds a linebreak or the root node, otherwise add plain
+// text (text is the generic token for anything that does not match another token type,
+// e.g. `# Foo` is comprised of a `.h1` and a `.text` token.
+fn maybeTokenizeText(self: *Parser, prev_token: tokens.Token, token: tokens.Token) !void {
+    if (prev_token.end >= token.start) return;
+
+    if (prev_token.element.type == .linebreak or prev_token.element.type == .root) {
+        try self.tokens.append(.{
+            .element = tokens.Paragraph,
+            .start = token.start,
+            .end = token.end,
+        });
+        try self.appendText(prev_token.end, token.start);
+    } else {
+        try self.appendText(prev_token.end, token.start);
+    }
+}
+
 // Append a text node to the tree.
 fn appendText(self: *Parser, start: usize, end: usize) !void {
     try self.tokens.append(.{
@@ -147,17 +158,58 @@ fn appendText(self: *Parser, start: usize, end: usize) !void {
     });
 }
 
+// Translate a link/image title and href into a single node. Nullify dangling nodes.
+fn parseLink(self: *Parser, node: *Node, index: usize, link_type: enum { image, link }) void {
+    const expected_tokens = &[_]tokens.ElementType{ .text, .title_close, .href, .text, .href_close };
+    if (index + expected_tokens.len + 1 >= self.tokens.items.len - 1) return self.swapText(node, index);
+
+    for (expected_tokens, index + 1..) |expected, offset| {
+        if (self.tokens.items[offset].element.type != expected) return self.swapText(node, index);
+    }
+
+    const start = node.token.start;
+    const end = self.tokens.items[index + expected_tokens.len + 1].end;
+
+    const element_type: tokens.ElementType = switch (link_type) {
+        .image => .image,
+        .link => .link,
+    };
+
+    node.token = .{ .element = .{ .type = element_type }, .start = start, .end = end };
+    node.href = self.input[self.tokens.items[index + 4].start..self.tokens.items[index + 4].end];
+    node.title = self.input[self.tokens.items[index + 1].start..self.tokens.items[index + 1].end];
+
+    for (0..expected_tokens.len) |offset| self.nullifyToken(index + offset);
+}
+
+// Swap a given node with a plain text node. Used when a link/image token does not have the
+// expected subsequent tokens to build a full link/image node.
+fn swapText(self: Parser, node: *Node, index: usize) void {
+    const token = self.tokens.items[index];
+    node.token = .{ .element = tokens.Text, .start = token.start, .end = token.end };
+}
+
 // Append a meta value to a `block` node. Replace dangling text token with a `.none` element.
-fn appendBlockMeta(self: *Parser, node: *Node, index: usize) void {
-    if (node.token.element.type != .block) return;
+fn parseBlock(self: *Parser, node: *Node, index: usize, maybe_end: ?usize) void {
+    const end = maybe_end orelse return;
     if (index + 2 >= self.tokens.items.len) return;
 
     const next_token = self.tokens.items[index + 2];
 
-    if (next_token.element.type != .text) return;
+    if (next_token.element.type == .text) {
+        node.meta = self.input[next_token.start..next_token.end];
+        self.nullifyToken(index + 2);
+    }
 
-    node.meta = self.input[next_token.start..next_token.end];
-    self.nullifyToken(index + 2);
+    const offset: u2 = if (next_token.element.type == .text) 3 else 2;
+    for (index + offset..end - 1) |token_index| {
+        const token = self.tokens.items[token_index];
+        self.tokens.items[token_index] = .{
+            .element = tokens.Text,
+            .start = token.start,
+            .end = token.end,
+        };
+    }
 }
 
 /// Nullify a token. Used to prevent close tokens from being included in generated AST.
