@@ -342,3 +342,99 @@ test "paragraph" {
         \\
     , html);
 }
+
+test "unordered list (+)" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\+ list item 1
+        \\+ list item 2
+        \\+ list item 3
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}
+
+test "unordered list (-)" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\- list item 1
+        \\- list item 2
+        \\- list item 3
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}
+
+test "unordered list (*)" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\* list item 1
+        \\* list item 2
+        \\* list item 3
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}
+
+test "ordered list" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\1. list item 1
+        \\1. list item 2
+        \\1. list item 3
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ol><li>list item 1</li><li>list item 2</li><li>list item 3</li></ol></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}

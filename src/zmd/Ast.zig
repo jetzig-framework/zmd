@@ -37,7 +37,7 @@ pub fn parse(self: *Ast) !*Node {
 
     _ = try self.parseChildNodes(0, root);
 
-    // debugTree(root, 0);
+    debugTree(root, 0);
 
     self.state = .parsed;
 
@@ -57,7 +57,9 @@ pub fn tokenize(self: *Ast) !void {
     while (index < self.input.len) {
         if (self.firstToken(index)) |token| {
             if (previous_token) |prev_token| try self.maybeTokenizeText(prev_token, token);
-            try self.tokens.append(token);
+            if (!token.element.clear or (token.element.clear and self.isCleared(index))) {
+                try self.tokens.append(token);
+            }
             previous_token = token;
             index = token.end;
         } else index += 1;
@@ -84,6 +86,19 @@ pub fn tokenize(self: *Ast) !void {
     });
 
     self.state = .tokenized;
+}
+
+// Detect if a given input index proceeds a linebreak (possibly with trailing whitespace), or if
+// the cursor is at first character in the input.
+fn isCleared(self: Ast, index: usize) bool {
+    if (index == 0) return true;
+    var cursor = index - 1;
+    while (cursor >= 0) : (cursor -= 1) {
+        if (!std.ascii.isWhitespace(self.input[cursor])) return false;
+        if (self.input[cursor] == '\n') return true;
+    }
+
+    return false;
 }
 
 // Return the first token in the input from the given index.
@@ -114,6 +129,8 @@ fn parseChildNodes(self: *Ast, start: usize, node: *Node) !bool {
             .link_title => self.parseLink(child_node, index, .link),
             .image_title => self.parseLink(child_node, index, .image),
             .block => self.parseBlock(child_node, index, self.getCloseIndex(index)),
+            .unordered_list_item => try self.parseList(child_node, index, .unordered),
+            .ordered_list_item => try self.parseList(child_node, index, .ordered),
             else => {},
         }
         self.nullifyToken(end);
@@ -156,7 +173,7 @@ fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token) 
     }
 }
 
-// Append a text node to the tree.
+// Append a text token to the end of the tokens array.
 fn appendText(self: *Ast, start: usize, end: usize) !void {
     try self.tokens.append(.{
         .element = tokens.Text,
@@ -165,6 +182,7 @@ fn appendText(self: *Ast, start: usize, end: usize) !void {
     });
 }
 
+// Insert a text token at the given index.
 fn insertText(self: *Ast, index: usize, start: usize, end: usize) !void {
     try self.tokens.insert(index, .{
         .element = tokens.Text,
@@ -232,6 +250,79 @@ fn parseBlock(self: *Ast, node: *Node, index: usize, maybe_end: ?usize) void {
     for (index + offset + 2..end - 1) |token_index| {
         self.nullifyToken(token_index);
     }
+}
+
+/// Parse a list into a single node with list item children, of which each list item has a text
+/// node as its only child.
+fn parseList(
+    self: *Ast,
+    node: *Node,
+    index: usize,
+    comptime list_type: enum { ordered, unordered },
+) !void {
+    var token_index = index;
+
+    while (token_index < self.tokens.items.len) {
+        if (token_index + 3 > self.tokens.items.len - 1) {
+            break;
+        }
+
+        const list_item_type = switch (list_type) {
+            .ordered => .ordered_list_item,
+            .unordered => .unordered_list_item,
+        };
+        const expected = &[_]tokens.ElementType{ list_item_type, .text, .linebreak };
+        if (!self.expectTokens(token_index, expected)) break;
+
+        const list_item_token = self.tokens.items[token_index];
+        const text_token = self.tokens.items[token_index + 1];
+
+        const list_item_node = try self.createNode(.{
+            .element = .{ .type = .list_item },
+            .start = list_item_token.start,
+            .end = list_item_token.end,
+        });
+
+        const text_node = try self.createNode(
+            .{ .element = tokens.Text, .start = text_token.start, .end = text_token.end },
+        );
+
+        try list_item_node.children.append(text_node);
+        try node.children.append(list_item_node);
+        token_index += expected.len;
+    }
+
+    if (token_index > index) {
+        const element_type = switch (list_type) {
+            .ordered => .ordered_list,
+            .unordered => .unordered_list,
+        };
+
+        node.token = .{
+            .element = .{ .type = element_type },
+            .start = self.tokens.items[index].start,
+            .end = self.tokens.items[token_index].end,
+        };
+
+        for (index + 1..token_index) |nullify_index| self.nullifyToken(nullify_index);
+    } else {
+        node.token = .{
+            .element = tokens.Text,
+            .start = self.tokens.items[index].start,
+            .end = self.tokens.items[index].end,
+        };
+    }
+}
+
+fn expectTokens(self: Ast, start: usize, expected: []const tokens.ElementType) bool {
+    if (start + expected.len >= self.tokens.items.len) return false;
+
+    for (expected, start..) |token_type, index| {
+        const actual = self.tokens.items[index].element.type;
+        if (actual != token_type) return false;
+    }
+
+    return true;
 }
 
 /// Nullify a token. Used to prevent close tokens from being included in generated AST.

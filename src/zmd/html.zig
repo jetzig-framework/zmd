@@ -52,6 +52,9 @@ pub const DefaultFragments = struct {
     pub const h6 = .{ "<h6>", "</h6>\n" };
     pub const bold = .{ "<b>", "</b>" };
     pub const italic = .{ "<i>", "</i>" };
+    pub const unordered_list = .{ "<ul>", "</ul>" };
+    pub const ordered_list = .{ "<ol>", "</ol>" };
+    pub const list_item = .{ "<li>", "</li>" };
     pub const code = .{ "<span style=\"font-family: Monospace\">", "</span>" };
     pub const paragraph = .{ "<p>", "</p>\n" };
     pub const default = .{ "", "" };
