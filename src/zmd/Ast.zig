@@ -37,7 +37,7 @@ pub fn parse(self: *Ast) !*Node {
 
     _ = try self.parseChildNodes(0, root);
 
-    debugTree(root, 0);
+    // debugTree(root, 0);
 
     self.state = .parsed;
 
