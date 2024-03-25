@@ -32,7 +32,11 @@ pub fn toHtml(
     const buf_writer = buf.writer();
 
     if (self.token.element.type == .text) {
-        try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
+        if (self.children.items.len == 0) {
+            try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
+        } else {
+            try buf_writer.writeAll(input[self.token.start..self.token.end]);
+        }
     }
 
     for (self.children.items) |node| {

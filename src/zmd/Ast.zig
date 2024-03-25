@@ -2,7 +2,7 @@ const std = @import("std");
 const Node = @import("Node.zig");
 const tokens = @import("tokens.zig");
 
-const Parser = @This();
+const Ast = @This();
 
 allocator: std.mem.Allocator,
 input: []const u8,
@@ -11,8 +11,8 @@ state: enum { initial, tokenized, parsed } = .initial,
 current_node: *Node = undefined,
 visited: std.AutoHashMap(usize, bool) = undefined,
 
-/// Initialize a new parser.
-pub fn init(allocator: std.mem.Allocator, input: []const u8) Parser {
+/// Initialize a new Ast.
+pub fn init(allocator: std.mem.Allocator, input: []const u8) Ast {
     return .{
         .allocator = allocator,
         .input = input,
@@ -21,12 +21,12 @@ pub fn init(allocator: std.mem.Allocator, input: []const u8) Parser {
 }
 
 /// Deinitialize and free allocated memory.
-pub fn deinit(self: *Parser) void {
+pub fn deinit(self: *Ast) void {
     self.tokens.deinit();
 }
 
 /// Parse tokenized input. Must call `tokenize()` first.
-pub fn parse(self: *Parser) !*Node {
+pub fn parse(self: *Ast) !*Node {
     if (self.state != .tokenized) unreachable;
 
     const root = try self.createNode(
@@ -45,7 +45,7 @@ pub fn parse(self: *Parser) !*Node {
 }
 
 /// Iterate through input, separating into tokens to be fed to the parser.
-pub fn tokenize(self: *Parser) !void {
+pub fn tokenize(self: *Ast) !void {
     if (self.state != .initial) unreachable;
 
     var index: usize = 0;
@@ -61,10 +61,17 @@ pub fn tokenize(self: *Parser) !void {
             previous_token = token;
             index = token.end;
         } else index += 1;
+
+        // Prepend a text node if the first token (after the root token) does not start at the
+        // beginning of the input.
+        if (self.tokens.items.len == 2 and self.tokens.items[1].start > 0) {
+            try self.insertText(1, 0, self.tokens.items[1].start);
+        }
     }
 
     if (self.tokens.items.len > 0) {
         const last_token = self.tokens.items[self.tokens.items.len - 1];
+        // Append a text node for the remainder of the buffer if present:
         if (last_token.end < self.input.len - 1) {
             try self.appendText(last_token.end, self.input.len);
         }
@@ -80,7 +87,7 @@ pub fn tokenize(self: *Parser) !void {
 }
 
 // Return the first token in the input from the given index.
-fn firstToken(self: Parser, index: usize) ?tokens.Token {
+fn firstToken(self: Ast, index: usize) ?tokens.Token {
     if (self.input[index] == '\n') {
         return .{ .element = tokens.Linebreak, .start = index, .end = index + 1 };
     }
@@ -96,20 +103,20 @@ fn firstToken(self: Parser, index: usize) ?tokens.Token {
 }
 
 // Recursively build a tree of nodes from the given token index and a provided root node.
-fn parseChildNodes(self: *Parser, start: usize, node: *Node) !bool {
+fn parseChildNodes(self: *Ast, start: usize, node: *Node) !bool {
     if (try self.visited.fetchPut(start, true)) |_| return false;
     var index = start;
     const end = self.getCloseIndex(index) orelse index;
     while (index < end) {
-        const child_node = try self.createNode(self.tokens.items[index + 1]);
+        index += 1;
+        const child_node = try self.createNode(self.tokens.items[index]);
         switch (child_node.token.element.type) {
-            .link_title => self.parseLink(child_node, index + 1, .link),
-            .image_title => self.parseLink(child_node, index + 1, .image),
-            .block => self.parseBlock(child_node, index, self.getCloseIndex(index + 1)),
+            .link_title => self.parseLink(child_node, index, .link),
+            .image_title => self.parseLink(child_node, index, .image),
+            .block => self.parseBlock(child_node, index, self.getCloseIndex(index)),
             else => {},
         }
         self.nullifyToken(end);
-        index += 1;
         if (index >= self.tokens.items.len - 1) break;
         if (try self.parseChildNodes(index, child_node)) {
             if (child_node.token.element.type != .none) try node.children.append(child_node);
@@ -119,7 +126,7 @@ fn parseChildNodes(self: *Parser, start: usize, node: *Node) !bool {
 }
 
 /// Locate the token index for the syntax that closes the current token.
-fn getCloseIndex(self: Parser, start: usize) ?usize {
+fn getCloseIndex(self: Ast, start: usize) ?usize {
     if (start >= self.tokens.items.len - 1) return null;
     const match_token = self.tokens.items[start];
     if (match_token.element.close == .none) return null;
@@ -134,7 +141,7 @@ fn getCloseIndex(self: Parser, start: usize) ?usize {
 // Convert text into a paragraph if it proceeds a linebreak or the root node, otherwise add plain
 // text (text is the generic token for anything that does not match another token type,
 // e.g. `# Foo` is comprised of a `.h1` and a `.text` token.
-fn maybeTokenizeText(self: *Parser, prev_token: tokens.Token, token: tokens.Token) !void {
+fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token) !void {
     if (prev_token.end >= token.start) return;
 
     if (prev_token.element.type == .linebreak or prev_token.element.type == .root) {
@@ -150,7 +157,7 @@ fn maybeTokenizeText(self: *Parser, prev_token: tokens.Token, token: tokens.Toke
 }
 
 // Append a text node to the tree.
-fn appendText(self: *Parser, start: usize, end: usize) !void {
+fn appendText(self: *Ast, start: usize, end: usize) !void {
     try self.tokens.append(.{
         .element = tokens.Text,
         .start = start,
@@ -158,8 +165,16 @@ fn appendText(self: *Parser, start: usize, end: usize) !void {
     });
 }
 
+fn insertText(self: *Ast, index: usize, start: usize, end: usize) !void {
+    try self.tokens.insert(index, .{
+        .element = tokens.Text,
+        .start = start,
+        .end = end,
+    });
+}
+
 // Translate a link/image title and href into a single node. Nullify dangling nodes.
-fn parseLink(self: *Parser, node: *Node, index: usize, link_type: enum { image, link }) void {
+fn parseLink(self: *Ast, node: *Node, index: usize, link_type: enum { image, link }) void {
     const expected_tokens = &[_]tokens.ElementType{ .text, .title_close, .href, .text, .href_close };
     if (index + expected_tokens.len + 1 >= self.tokens.items.len - 1) return self.swapText(node, index);
 
@@ -184,36 +199,43 @@ fn parseLink(self: *Parser, node: *Node, index: usize, link_type: enum { image, 
 
 // Swap a given node with a plain text node. Used when a link/image token does not have the
 // expected subsequent tokens to build a full link/image node.
-fn swapText(self: Parser, node: *Node, index: usize) void {
+fn swapText(self: Ast, node: *Node, index: usize) void {
     const token = self.tokens.items[index];
     node.token = .{ .element = tokens.Text, .start = token.start, .end = token.end };
 }
 
 // Append a meta value to a `block` node. Replace dangling text token with a `.none` element.
-fn parseBlock(self: *Parser, node: *Node, index: usize, maybe_end: ?usize) void {
-    const end = maybe_end orelse return;
+fn parseBlock(self: *Ast, node: *Node, index: usize, maybe_end: ?usize) void {
+    const end = maybe_end orelse return; // We don't have a closing ``` so don't try to parse
     if (index + 2 >= self.tokens.items.len) return;
 
-    const next_token = self.tokens.items[index + 2];
+    const next_token = self.tokens.items[index + 1];
+    const has_meta = next_token.element.type == .text;
 
-    if (next_token.element.type == .text) {
+    // meta is the "zig" in ```zig
+    if (has_meta) {
         node.meta = self.input[next_token.start..next_token.end];
-        self.nullifyToken(index + 2);
+        self.nullifyToken(index + 1);
     }
 
-    const offset: u2 = if (next_token.element.type == .text) 3 else 2;
-    for (index + offset..end - 1) |token_index| {
-        const token = self.tokens.items[token_index];
-        self.tokens.items[token_index] = .{
-            .element = tokens.Text,
-            .start = token.start,
-            .end = token.end,
-        };
+    // skip meta when squashing text
+    const offset: u1 = if (has_meta) 1 else 0;
+
+    // Squash all tokens inside code block into a single `text` element ...
+    self.tokens.items[index + offset + 1] = .{
+        .element = tokens.Text,
+        .start = self.tokens.items[index + offset + 1].start + 1, // + 1 to skip linebreak after ```
+        .end = self.tokens.items[end - 1].end,
+    };
+
+    // ... and then nullify the squashed tokens
+    for (index + offset + 2..end - 1) |token_index| {
+        self.nullifyToken(token_index);
     }
 }
 
 /// Nullify a token. Used to prevent close tokens from being included in generated AST.
-fn nullifyToken(self: *Parser, index: usize) void {
+fn nullifyToken(self: *Ast, index: usize) void {
     self.tokens.replaceRangeAssumeCapacity(index, 1, &[_]tokens.Token{.{
         .element = .{ .type = .none },
         .start = self.tokens.items[index].start,
@@ -222,7 +244,7 @@ fn nullifyToken(self: *Parser, index: usize) void {
 }
 
 // Create a new node on the heap.
-fn createNode(self: Parser, token: tokens.Token) !*Node {
+fn createNode(self: Ast, token: tokens.Token) !*Node {
     const node = try self.allocator.create(Node);
     node.* = .{
         .token = token,

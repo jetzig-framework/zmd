@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const Node = @import("Node.zig");
-const Parser = @import("Parser.zig");
+const Ast = @import("Ast.zig");
 const tokens = @import("tokens.zig");
 const html = @import("html.zig");
 
@@ -34,7 +34,9 @@ pub fn parse(self: *Zmd, input: []const u8) !void {
 
     const allocator = self.arena.allocator();
 
-    var parser = Parser.init(allocator, input);
+    const normalized = normalizeInput(allocator, input);
+
+    var parser = Ast.init(allocator, normalized);
     defer parser.deinit();
 
     try parser.tokenize();
@@ -42,7 +44,7 @@ pub fn parse(self: *Zmd, input: []const u8) !void {
     const root = try parser.parse();
     try self.nodes.append(root);
 
-    self.input = input;
+    self.input = normalized;
 
     self.state = .parsed;
 }
@@ -65,4 +67,13 @@ pub fn toHtml(self: *const Zmd, fragments: type) ![]const u8 {
     try bw.flush();
 
     return try self.allocator.dupe(u8, buf.items);
+}
+
+// Normalize text to unix-style linebreaks and ensure ending with a linebreak to simplify
+// Windows compatibility.
+fn normalizeInput(allocator: std.mem.Allocator, input: []const u8) []const u8 {
+    const output = std.mem.replaceOwned(u8, allocator, input, "\r\n", "\n") catch @panic("OOM");
+    if (std.mem.endsWith(u8, output, "\n")) return output;
+
+    return std.mem.concat(allocator, u8, &[_][]const u8{ output, "\n" }) catch @panic("OOM");
 }

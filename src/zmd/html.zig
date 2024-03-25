@@ -60,13 +60,14 @@ pub const DefaultFragments = struct {
 /// Escape HTML entities.
 pub fn escape(allocator: std.mem.Allocator, input: []const u8) ![]const u8 {
     const replacements = .{
+        .{ "&", "&amp;" },
         .{ "<", "&lt;" },
         .{ ">", "&gt;" },
     };
 
     var output = input;
     inline for (replacements) |replacement| {
-        output = try std.mem.replaceOwned(u8, allocator, input, replacement[0], replacement[1]);
+        output = try std.mem.replaceOwned(u8, allocator, output, replacement[0], replacement[1]);
     }
     return output;
 }
