@@ -157,7 +157,7 @@ fn getCloseIndex(self: Ast, start: usize) ?usize {
 
 // Convert text into a paragraph if it proceeds a linebreak or the root node, otherwise add plain
 // text (text is the generic token for anything that does not match another token type,
-// e.g. `# Foo` is comprised of a `.h1` and a `.text` token.
+// e.g. `# Foo` is comprised of a `.h1` and a `.text` token).
 fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token) !void {
     if (prev_token.end >= token.start) return;
 
