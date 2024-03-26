@@ -2,7 +2,19 @@
 
 _Zmd_ is a [Markdown](https://en.wikipedia.org/wiki/Markdown) parser and _HTML_ translator written in 100% pure [Zig](https://ziglang.org/) with zero dependencies.
 
-_Zmd_ is currently very incomplete and in alpha stage. It is used by the [Jetzig web framework](https://www.jetzig.dev/) and will be extended as features are needed.
+_Zmd_ is used by the [Jetzig web framework](https://www.jetzig.dev/).
+
+## Supported syntax
+
+* Headers (H1->H6)
+* **bold**
+* _italic_
+* `code`
+* Links
+* Images
+* Fenced code blocks (with info string)
+* Ordered lists
+* Unordered lists
 
 ## Usage
 
