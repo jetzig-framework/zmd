@@ -56,10 +56,22 @@ pub fn tokenize(self: *Ast) !void {
 
     while (index < self.input.len) {
         if (self.firstToken(index)) |token| {
+            const cleared = self.isCleared(index);
+
             if (previous_token) |prev_token| try self.maybeTokenizeText(prev_token, token);
-            if (!token.element.clear or (token.element.clear and self.isCleared(index))) {
+
+            if (!token.element.clear and cleared and token.element.type != .linebreak) {
+                try self.tokens.append(.{
+                    .element = tokens.Paragraph,
+                    .start = index,
+                    .end = index,
+                });
+            }
+
+            if (!token.element.clear or (token.element.clear and cleared)) {
                 try self.tokens.append(token);
             }
+
             previous_token = token;
             index = token.end;
         } else index += 1;

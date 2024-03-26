@@ -60,7 +60,6 @@ pub const elements = [_]Element{
 };
 
 pub const Linebreak = Element{ .type = .linebreak };
-
 pub const Root = Element{ .type = .root, .close = .eof };
 pub const Text = Element{ .type = .text, .close = .none };
 pub const Paragraph = Element{ .type = .paragraph, .close = .linebreak };

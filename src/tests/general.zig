@@ -76,3 +76,29 @@ test "parse content without trailing linebreak before eof" {
         \\
     , html);
 }
+
+test "parse paragraph leading with a token" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\# Header
+        \\
+        \\**bold** text at the start of a paragraph
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><h1>Header</h1>
+        \\<p><b>bold</b> text at the start of a paragraph</p>
+        \\</main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}

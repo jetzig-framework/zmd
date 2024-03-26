@@ -156,7 +156,8 @@ test "bold (dangling)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><b>bold</b></main>
+        \\<main><p><b>bold</b></p>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -200,7 +201,8 @@ test "italic (dangling)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><i>italic</i></main>
+        \\<main><p><i>italic</i></p>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -244,7 +246,8 @@ test "code (dangling)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><span style="font-family: Monospace">code</span></main>
+        \\<main><p><span style="font-family: Monospace">code</span></p>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -288,7 +291,8 @@ test "image" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><img src="https://example.com/image.png" title="image title" /></main>
+        \\<main><p><img src="https://example.com/image.png" title="image title" /></p>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -310,7 +314,8 @@ test "link" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><a href="https://example.com/">link title</a></main>
+        \\<main><p><a href="https://example.com/">link title</a></p>
+        \\</main>
         \\</body>
         \\</html>
         \\
