@@ -118,7 +118,7 @@ fn firstToken(self: Ast, index: usize) ?tokens.Token {
 }
 
 // Recursively build a tree of nodes from the given token index and a provided root node.
-fn parseChildNodes(self: *Ast, start: usize, node: *Node) !bool {
+fn parseChildNodes(self: *Ast, start: usize, node: *Node) error{OutOfMemory}!bool {
     if (try self.visited.fetchPut(start, true)) |_| return false;
     var index = start;
     const end = self.getCloseIndex(index) orelse index;
@@ -129,8 +129,8 @@ fn parseChildNodes(self: *Ast, start: usize, node: *Node) !bool {
             .link_title => self.parseLink(child_node, index, .link),
             .image_title => self.parseLink(child_node, index, .image),
             .block => self.parseBlock(child_node, index, self.getCloseIndex(index)),
-            .unordered_list_item => try self.parseList(child_node, index, .unordered),
-            .ordered_list_item => try self.parseList(child_node, index, .ordered),
+            .unordered_list_item => try self.parseList(node, child_node, index, .unordered),
+            .ordered_list_item => try self.parseList(node, child_node, index, .ordered),
             else => {},
         }
         self.nullifyToken(end);
@@ -256,6 +256,7 @@ fn parseBlock(self: *Ast, node: *Node, index: usize, maybe_end: ?usize) void {
 /// node as its only child.
 fn parseList(
     self: *Ast,
+    parent_node: *Node,
     node: *Node,
     index: usize,
     comptime list_type: enum { ordered, unordered },
@@ -263,33 +264,19 @@ fn parseList(
     var token_index = index;
 
     while (token_index < self.tokens.items.len) {
-        if (token_index + 3 > self.tokens.items.len - 1) {
-            break;
-        }
-
-        const list_item_type = switch (list_type) {
-            .ordered => .ordered_list_item,
-            .unordered => .unordered_list_item,
-        };
-        const expected = &[_]tokens.ElementType{ list_item_type, .text, .linebreak };
-        if (!self.expectTokens(token_index, expected)) break;
-
+        const list_item_close_index = self.getCloseIndex(token_index) orelse break;
         const list_item_token = self.tokens.items[token_index];
-        const text_token = self.tokens.items[token_index + 1];
 
         const list_item_node = try self.createNode(.{
             .element = .{ .type = .list_item },
             .start = list_item_token.start,
             .end = list_item_token.end,
         });
-
-        const text_node = try self.createNode(
-            .{ .element = tokens.Text, .start = text_token.start, .end = text_token.end },
-        );
-
-        try list_item_node.children.append(text_node);
         try node.children.append(list_item_node);
-        token_index += expected.len;
+
+        _ = try self.parseChildNodes(token_index, list_item_node);
+
+        token_index = list_item_close_index + 1;
     }
 
     if (token_index > index) {
@@ -303,6 +290,8 @@ fn parseList(
             .start = self.tokens.items[index].start,
             .end = self.tokens.items[token_index].end,
         };
+
+        try parent_node.children.append(node);
 
         for (index + 1..token_index) |nullify_index| self.nullifyToken(nullify_index);
     } else {
@@ -346,7 +335,10 @@ fn createNode(self: Ast, token: tokens.Token) !*Node {
 
 // Output a parsed tree with indentation to stderr.
 fn debugTree(node: *Node, level: usize) void {
-    for (0..level) |_| std.debug.print(" ", .{});
+    if (level == 0) {
+        std.debug.print("tree:\n", .{});
+    }
+    for (0..level + 1) |_| std.debug.print(" ", .{});
     std.debug.print("{s}\n", .{@tagName(node.token.element.type)});
     for (node.children.items) |child_node| {
         debugTree(child_node, level + 1);

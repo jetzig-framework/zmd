@@ -415,7 +415,7 @@ test "unordered list (*)" {
     , html);
 }
 
-test "ordered list" {
+test "ordered list (1., 1., 1.)" {
     var zmd = Zmd.init(std.testing.allocator);
     defer zmd.deinit();
 
@@ -433,6 +433,30 @@ test "ordered list" {
         \\<html>
         \\<body>
         \\<main><ol><li>list item 1</li><li>list item 2</li><li>list item 3</li></ol></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}
+
+test "list with embedded elements" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\* list item with [my link](https://www.example.com/)
+        \\* list item with ![my image](https://www.example.com/image.png)
+        \\* list item with **bold** and _italic_ text
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ul><li>list item with <a href="https://www.example.com/">my link</a></li><li>list item with <img src="https://www.example.com/image.png" title="my image" /></li><li>list item with <b>bold</b> and <i>italic</i> text</li></ul></main>
         \\</body>
         \\</html>
         \\
