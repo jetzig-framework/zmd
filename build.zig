@@ -1,5 +1,7 @@
 const std = @import("std");
 
+pub const zmd = @import("src/zmd.zig");
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
