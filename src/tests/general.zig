@@ -102,3 +102,27 @@ test "parse paragraph leading with a token" {
         \\
     , html);
 }
+
+test "parse intented list" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\  * foo
+        \\  * bar
+        \\  * baz
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main>  <ul><li>foo</li></ul>  <ul><li>bar</li></ul>  <ul><li>baz</li></ul></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}

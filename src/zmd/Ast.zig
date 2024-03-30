@@ -57,8 +57,7 @@ pub fn tokenize(self: *Ast) !void {
     while (index < self.input.len) {
         if (self.firstToken(index)) |token| {
             const cleared = self.isCleared(index);
-
-            if (previous_token) |prev_token| try self.maybeTokenizeText(prev_token, token);
+            if (previous_token) |prev_token| try self.maybeTokenizeText(prev_token, token, cleared);
 
             if (!token.element.clear and cleared and token.element.type != .linebreak) {
                 try self.tokens.append(.{
@@ -97,6 +96,8 @@ pub fn tokenize(self: *Ast) !void {
         .end = self.input.len,
     });
 
+    // for (self.tokens.items) |token| self.debugToken(token);
+
     self.state = .tokenized;
 }
 
@@ -105,12 +106,12 @@ pub fn tokenize(self: *Ast) !void {
 fn isCleared(self: Ast, index: usize) bool {
     if (index == 0) return true;
     var cursor = index - 1;
-    while (cursor >= 0) : (cursor -= 1) {
-        if (!std.ascii.isWhitespace(self.input[cursor])) return false;
+    while (cursor > 0) : (cursor -= 1) {
         if (self.input[cursor] == '\n') return true;
+        if (!std.ascii.isWhitespace(self.input[cursor])) return false;
     }
 
-    return false;
+    return true; // We made it to the start of the input which counts as cleared.
 }
 
 // Return the first token in the input from the given index.
@@ -170,19 +171,19 @@ fn getCloseIndex(self: Ast, start: usize) ?usize {
 // Convert text into a paragraph if it proceeds a linebreak or the root node, otherwise add plain
 // text (text is the generic token for anything that does not match another token type,
 // e.g. `# Foo` is comprised of a `.h1` and a `.text` token).
-fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token) !void {
+fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token, cleared: bool) !void {
     if (prev_token.end >= token.start) return;
 
-    if (prev_token.element.type == .linebreak or prev_token.element.type == .root) {
+    const cleared_token = cleared and token.element.clear;
+
+    if ((prev_token.element.type == .linebreak or prev_token.element.type == .root) and !cleared_token) {
         try self.tokens.append(.{
             .element = tokens.Paragraph,
             .start = token.start,
             .end = token.end,
         });
-        try self.appendText(prev_token.end, token.start);
-    } else {
-        try self.appendText(prev_token.end, token.start);
     }
+    try self.appendText(prev_token.end, token.start);
 }
 
 // Append a text token to the end of the tokens array.
@@ -355,4 +356,9 @@ fn debugTree(node: *Node, level: usize) void {
     for (node.children.items) |child_node| {
         debugTree(child_node, level + 1);
     }
+}
+
+// Output the type and content of a token
+fn debugToken(self: Ast, token: tokens.Token) void {
+    std.debug.print("[{s}] {s}\n", .{ @tagName(token.element.type), self.input[token.start..token.end] });
 }
