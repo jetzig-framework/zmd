@@ -183,7 +183,26 @@ fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token, 
             .end = token.end,
         });
     }
-    try self.appendText(prev_token.end, token.start);
+
+    if (cleared_token) {
+        // Only append a text token if the cleared token is not preceded on the same line
+        // exclusively by whitespace.
+        // This allows indenting cleared tokens, e.g.:
+        // ```
+        //    * foo
+        //    * bar
+        //    * baz
+        // ```
+        // The whitespace before each item will not be injected as a text token.
+        for (self.input[prev_token.end + 1 .. token.start]) |char| {
+            if (!std.ascii.isWhitespace(char)) {
+                try self.appendText(prev_token.end, token.start);
+                break;
+            }
+        }
+    } else {
+        try self.appendText(prev_token.end, token.start);
+    }
 }
 
 // Append a text token to the end of the tokens array.

@@ -120,7 +120,7 @@ test "parse intented list" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main>  <ul><li>foo</li></ul>  <ul><li>bar</li></ul>  <ul><li>baz</li></ul></main>
+        \\<main>  <ul><li>foo</li><li>bar</li><li>baz</li></ul></main>
         \\</body>
         \\</html>
         \\
