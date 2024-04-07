@@ -55,17 +55,13 @@ pub fn tokenize(self: *Ast) !void {
     try self.tokens.append(.{ .element = tokens.Root, .start = 0, .end = 0 });
 
     while (index < self.input.len) {
-        if (self.firstToken(index)) |token| {
+        if (self.firstToken(previous_token, index)) |token| {
             const cleared = self.isCleared(index);
-            if (previous_token) |prev_token| try self.maybeTokenizeText(prev_token, token, cleared);
+            if (previous_token) |previous| try self.maybeTokenizeText(previous, token, cleared);
 
-            if (!token.element.clear and cleared and token.element.type != .linebreak) {
-                try self.tokens.append(.{
-                    .element = tokens.Paragraph,
-                    .start = index,
-                    .end = index,
-                });
-            }
+            if (self.isEmptyLine(index) and
+                !token.element.clear and
+                token.element.type != .linebreak) try self.appendParagraph(index);
 
             if (!token.element.clear or (token.element.clear and cleared)) {
                 try self.tokens.append(token);
@@ -114,8 +110,26 @@ fn isCleared(self: Ast, index: usize) bool {
     return true; // We made it to the start of the input which counts as cleared.
 }
 
+// True if current character is a blank line or BOF
+fn isEmptyLine(self: Ast, index: usize) bool {
+    return index == 0 or self.input[index - 1] == '\n';
+}
+
 // Return the first token in the input from the given index.
-fn firstToken(self: Ast, index: usize) ?tokens.Token {
+fn firstToken(self: Ast, previous_token: ?tokens.Token, index: usize) ?tokens.Token {
+    if (previous_token) |previous| {
+        if (tokens.toggles.get(@tagName(previous.element.type))) |toggle| {
+            const offset = previous.start + previous.element.syntax.len;
+            if (std.mem.indexOf(u8, self.input[offset..], toggle.syntax)) |toggle_index| {
+                return .{
+                    .element = toggle,
+                    .start = offset + toggle_index,
+                    .end = offset + toggle_index + toggle.syntax.len,
+                };
+            }
+        }
+    }
+
     if (self.input[index] == '\n') {
         return .{ .element = tokens.Linebreak, .start = index, .end = index + 1 };
     }
@@ -205,6 +219,14 @@ fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token, 
     }
 }
 
+// Appande a paragraph token at the end of the tokens array.
+fn appendParagraph(self: *Ast, index: usize) !void {
+    try self.tokens.append(.{
+        .element = tokens.Paragraph,
+        .start = index,
+        .end = index,
+    });
+}
 // Append a text token to the end of the tokens array.
 fn appendText(self: *Ast, start: usize, end: usize) !void {
     try self.tokens.append(.{
@@ -256,31 +278,29 @@ fn swapText(self: Ast, node: *Node, index: usize) void {
 
 // Append a meta value to a `block` node. Replace dangling text token with a `.none` element.
 fn parseBlock(self: *Ast, node: *Node, index: usize, maybe_end: ?usize) void {
-    const end = maybe_end orelse return; // We don't have a closing ``` so don't try to parse
+    if (maybe_end == null) return; // We don't have a closing ``` so don't try to parse
     if (index + 2 >= self.tokens.items.len) return;
 
     const next_token = self.tokens.items[index + 1];
-    const has_meta = next_token.element.type == .text;
+    const has_meta = !std.mem.startsWith(u8, self.input[next_token.start..next_token.end], "\n");
 
     // meta is the "zig" in ```zig
     if (has_meta) {
-        node.meta = self.input[next_token.start..next_token.end];
-        self.nullifyToken(index + 1);
-    }
-
-    // skip meta when squashing text
-    const offset: u1 = if (has_meta) 1 else 0;
-
-    // Squash all tokens inside code block into a single `text` element ...
-    self.tokens.items[index + offset + 1] = .{
-        .element = tokens.Text,
-        .start = self.tokens.items[index + offset + 1].start + 1, // + 1 to skip linebreak after ```
-        .end = self.tokens.items[end - 1].end,
-    };
-
-    // ... and then nullify the squashed tokens
-    for (index + offset + 2..end - 1) |token_index| {
-        self.nullifyToken(token_index);
+        if (std.mem.indexOfScalar(u8, self.input[next_token.start..next_token.end], '\n')) |linebreak_index| {
+            node.meta = self.input[next_token.start .. next_token.start + linebreak_index];
+            node.content = self.input[next_token.start + linebreak_index + 1 .. next_token.end];
+            self.tokens.items[index + 1] = .{
+                .element = next_token.element,
+                .start = next_token.start + linebreak_index + 1,
+                .end = next_token.end - 1,
+            };
+        }
+    } else {
+        self.tokens.items[index + 1] = .{
+            .element = next_token.element,
+            .start = next_token.start + 1,
+            .end = next_token.end - 1,
+        };
     }
 }
 
@@ -379,5 +399,11 @@ fn debugTree(node: *Node, level: usize) void {
 
 // Output the type and content of a token
 fn debugToken(self: Ast, token: tokens.Token) void {
-    std.debug.print("[{s}] {s}\n", .{ @tagName(token.element.type), self.input[token.start..token.end] });
+    var buf = std.ArrayList(u8).init(self.allocator);
+    defer buf.deinit();
+    const writer = buf.writer();
+    writer.writeByte('"') catch @panic("OOM");
+    std.zig.stringEscape(self.input[token.start..token.end], "", .{}, writer) catch @panic("OOM");
+    writer.writeByte('"') catch @panic("OOM");
+    std.debug.print("[{s}] {s}\n", .{ @tagName(token.element.type), buf.items });
 }

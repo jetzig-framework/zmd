@@ -45,8 +45,7 @@ test "parse markdown and translate to HTML" {
         \\<p>an image: <img src="https://www.jetzig.dev/jetzig.png" title="jetzig logo" /></p>
         \\<pre class="language-zig" style="font-family: Monospace;"><code>if (1 &lt; 10) {
         \\    std.debug.print("1 is &lt; 10 !");
-        \\}
-        \\</code></pre><p>some more text with a <span style="font-family: Monospace">code</span> fragment</p>
+        \\}</code></pre><p>some more text with a <span style="font-family: Monospace">code</span> fragment</p>
         \\</main>
         \\</body>
         \\</html>
@@ -121,6 +120,30 @@ test "parse intented list" {
         \\<html>
         \\<body>
         \\<main>  <ul><li>foo</li><li>bar</li><li>baz</li></ul></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}
+
+test "parse underscores in code element" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\* `foo_bar`
+        \\* `baz_qux`
+        \\* `quux_corge`
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ul><li><span style="font-family: Monospace">foo_bar</span></li><li><span style="font-family: Monospace">baz_qux</span></li><li><span style="font-family: Monospace">quux_corge</span></li></ul></main>
         \\</body>
         \\</html>
         \\

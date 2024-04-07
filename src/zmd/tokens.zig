@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const ElementType = enum {
     root,
     text,
@@ -9,9 +11,13 @@ pub const ElementType = enum {
     h2,
     h1,
     bold,
+    bold_close,
     italic,
+    italic_close,
     block,
+    block_close,
     code,
+    code_close,
     image,
     link,
     image_title,
@@ -44,10 +50,10 @@ pub const elements = [_]Element{
     .{ .type = .h3, .syntax = "###", .close = .linebreak, .trim = true, .clear = true },
     .{ .type = .h2, .syntax = "##", .close = .linebreak, .trim = true, .clear = true },
     .{ .type = .h1, .syntax = "#", .close = .linebreak, .trim = true, .clear = true },
-    .{ .type = .bold, .syntax = "**", .close = .bold },
-    .{ .type = .italic, .syntax = "_", .close = .italic },
-    .{ .type = .block, .syntax = "```", .close = .block, .clear = true },
-    .{ .type = .code, .syntax = "`", .close = .code },
+    .{ .type = .bold, .syntax = "**", .close = .bold_close },
+    .{ .type = .italic, .syntax = "_", .close = .italic_close },
+    .{ .type = .block, .syntax = "```", .close = .block_close, .clear = true },
+    .{ .type = .code, .syntax = "`", .close = .code_close },
     .{ .type = .image_title, .syntax = "![", .close = .title_close },
     .{ .type = .link_title, .syntax = "[", .close = .title_close },
     .{ .type = .title_close, .syntax = "]" },
@@ -58,6 +64,16 @@ pub const elements = [_]Element{
     .{ .type = .unordered_list_item, .syntax = "- ", .close = .linebreak, .clear = true },
     .{ .type = .ordered_list_item, .syntax = "1. ", .close = .linebreak, .clear = true },
 };
+
+pub const toggles = std.ComptimeStringMap(
+    Element,
+    .{
+        .{ "bold", .{ .type = .bold_close, .syntax = "**" } },
+        .{ "italic", .{ .type = .italic_close, .syntax = "_" } },
+        .{ "code", .{ .type = .code_close, .syntax = "`" } },
+        .{ "block", .{ .type = .block_close, .syntax = "```" } },
+    },
+);
 
 pub const Linebreak = Element{ .type = .linebreak };
 pub const Root = Element{ .type = .root, .close = .eof };

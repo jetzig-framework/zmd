@@ -276,6 +276,34 @@ test "code (embedded)" {
     , html);
 }
 
+test "block" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\```zig
+        \\if (1 < 10) {
+        \\   return "1 is less than 10";
+        \\}
+        \\```
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><pre class="language-zig" style="font-family: Monospace;"><code>if (1 &lt; 10) {
+        \\   return "1 is less than 10";
+        \\}</code></pre></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}
+
 test "image" {
     var zmd = Zmd.init(std.testing.allocator);
     defer zmd.deinit();
