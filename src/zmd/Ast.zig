@@ -10,6 +10,7 @@ tokens: std.ArrayList(tokens.Token),
 state: enum { initial, tokenized, parsed } = .initial,
 current_node: *Node = undefined,
 visited: std.AutoHashMap(usize, bool) = undefined,
+elements_map: std.AutoHashMap(tokens.ElementType, tokens.Element) = undefined,
 
 /// Initialize a new Ast.
 pub fn init(allocator: std.mem.Allocator, input: []const u8) Ast {
@@ -47,6 +48,12 @@ pub fn parse(self: *Ast) !*Node {
 /// Iterate through input, separating into tokens to be fed to the parser.
 pub fn tokenize(self: *Ast) !void {
     if (self.state != .initial) unreachable;
+
+    self.elements_map = std.AutoHashMap(tokens.ElementType, tokens.Element).init(self.allocator);
+
+    for (tokens.elements) |element| {
+        try self.elements_map.put(element.type, element);
+    }
 
     var index: usize = 0;
 
@@ -136,12 +143,50 @@ fn firstToken(self: Ast, previous_token: ?tokens.Token, index: usize) ?tokens.To
 
     for (tokens.elements) |element| {
         if (index + element.syntax.len > self.input.len) continue;
-        if (std.mem.eql(u8, element.syntax, self.input[index .. index + element.syntax.len])) {
-            return .{ .element = element, .start = index, .end = index + element.syntax.len };
+        const matched = std.mem.eql(u8, element.syntax, self.input[index .. index + element.syntax.len]);
+        const matched_after = self.matchAfter(element, index);
+        const matched_close = self.matchClose(element);
+
+        if (matched and matched_after and matched_close) {
+            const token: tokens.Token = .{
+                .element = element,
+                .start = index,
+                .end = index + element.syntax.len,
+            };
+            return token;
         }
     }
 
     return null;
+}
+
+// Verify that a token immediately proceeds another token if `.after` property is set (otherwise
+// we treat as text).
+fn matchAfter(self: Ast, element: tokens.Element, index: usize) bool {
+    const after_element_type = element.after orelse return true;
+
+    // Allow a crash on null - it is a bug (we add all elements to map on start)
+    const after_element = self.elements_map.get(after_element_type).?;
+
+    if (index < after_element.syntax.len) return false;
+    const actual = self.input[index - after_element.syntax.len .. index];
+    return std.mem.eql(u8, after_element.syntax, actual);
+}
+
+// Verify that a closing token has a previously-opened token in the stack (otherwise we treat as
+// text).
+fn matchClose(self: Ast, element: tokens.Element) bool {
+    if (element.expect == null) return true;
+    if (self.tokens.items.len == 0) return false;
+
+    var index: usize = self.tokens.items.len - 1;
+    while (index > 0) : (index -= 1) {
+        switch (self.tokens.items[index].element.type) {
+            .text, .linebreak => continue,
+            else => return self.tokens.items[index].element.type == element.expect,
+        }
+    }
+    return false;
 }
 
 // Recursively build a tree of nodes from the given token index and a provided root node.

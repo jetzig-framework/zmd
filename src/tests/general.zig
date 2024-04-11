@@ -149,3 +149,25 @@ test "parse underscores in code element" {
         \\
     , html);
 }
+
+test "parse parentheses in in paragraph" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\some text (with parentheses) in a paragraph
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main>some text (with parentheses) in a paragraph</main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}
