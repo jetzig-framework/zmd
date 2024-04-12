@@ -156,7 +156,8 @@ test "bold (dangling)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><p><b>bold</b></p>
+        \\<main>
+        \\<p><b>bold</b></p>
         \\</main>
         \\</body>
         \\</html>
@@ -179,7 +180,9 @@ test "bold (embedded)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main>some <b>bold</b> text</main>
+        \\<main>
+        \\<p>some <b>bold</b> text</p>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -201,7 +204,8 @@ test "italic (dangling)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><p><i>italic</i></p>
+        \\<main>
+        \\<p><i>italic</i></p>
         \\</main>
         \\</body>
         \\</html>
@@ -224,7 +228,9 @@ test "italic (embedded)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main>some <i>italic</i> text</main>
+        \\<main>
+        \\<p>some <i>italic</i> text</p>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -246,7 +252,8 @@ test "code (dangling)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><p><span style="font-family: Monospace">code</span></p>
+        \\<main>
+        \\<p><span style="font-family: Monospace">code</span></p>
         \\</main>
         \\</body>
         \\</html>
@@ -269,7 +276,9 @@ test "code (embedded)" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main>some <span style="font-family: Monospace">code</span> text</main>
+        \\<main>
+        \\<p>some <span style="font-family: Monospace">code</span> text</p>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -319,7 +328,8 @@ test "image" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><p><img src="https://example.com/image.png" title="image title" /></p>
+        \\<main>
+        \\<p><img src="https://example.com/image.png" title="image title" /></p>
         \\</main>
         \\</body>
         \\</html>
@@ -342,7 +352,8 @@ test "link" {
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><p><a href="https://example.com/">link title</a></p>
+        \\<main>
+        \\<p><a href="https://example.com/">link title</a></p>
         \\</main>
         \\</body>
         \\</html>
@@ -368,6 +379,7 @@ test "paragraph" {
         \\<html>
         \\<body>
         \\<main><h1>a title</h1>
+        \\
         \\<p>a paragraph</p>
         \\</main>
         \\</body>

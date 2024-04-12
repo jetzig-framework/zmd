@@ -56,7 +56,7 @@ pub const DefaultFragments = struct {
     pub const ordered_list = .{ "<ol>", "</ol>" };
     pub const list_item = .{ "<li>", "</li>" };
     pub const code = .{ "<span style=\"font-family: Monospace\">", "</span>" };
-    pub const paragraph = .{ "<p>", "</p>\n" };
+    pub const paragraph = .{ "\n<p>", "</p>\n" };
     pub const default = .{ "", "" };
 };
 

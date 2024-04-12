@@ -11,6 +11,7 @@ state: enum { initial, tokenized, parsed } = .initial,
 current_node: *Node = undefined,
 visited: std.AutoHashMap(usize, bool) = undefined,
 elements_map: std.AutoHashMap(tokens.ElementType, tokens.Element) = undefined,
+debug: bool = false,
 
 /// Initialize a new Ast.
 pub fn init(allocator: std.mem.Allocator, input: []const u8) Ast {
@@ -18,6 +19,7 @@ pub fn init(allocator: std.mem.Allocator, input: []const u8) Ast {
         .allocator = allocator,
         .input = input,
         .tokens = std.ArrayList(tokens.Token).init(allocator),
+        // .debug = true,
     };
 }
 
@@ -38,7 +40,7 @@ pub fn parse(self: *Ast) !*Node {
 
     _ = try self.parseChildNodes(0, root);
 
-    // debugTree(root, 0);
+    if (self.debug) debugTree(root, 0);
 
     self.state = .parsed;
 
@@ -70,19 +72,23 @@ pub fn tokenize(self: *Ast) !void {
                 !token.element.clear and
                 token.element.type != .linebreak) try self.appendParagraph(index);
 
-            if (!token.element.clear or (token.element.clear and cleared)) {
-                try self.tokens.append(token);
-            }
-
+            try self.tokens.append(token);
             previous_token = token;
+
+            // Prepend a text token if the first token (after the root token) does not start at
+            // the beginning of the input.
+            if (self.tokens.items.len == 2 and self.tokens.items[1].start > 0) {
+                const token_start = self.tokens.items[1].start;
+                const text_end = if (cleared and token.element.clear)
+                    std.mem.lastIndexOfNone(u8, self.input[0..token_start], &std.ascii.whitespace) orelse
+                        0
+                else
+                    self.tokens.items[1].start;
+
+                if (0 != text_end) try self.insertText(1, 0, text_end);
+            }
             index = token.end;
         } else index += 1;
-
-        // Prepend a text node if the first token (after the root token) does not start at the
-        // beginning of the input.
-        if (self.tokens.items.len == 2 and self.tokens.items[1].start > 0) {
-            try self.insertText(1, 0, self.tokens.items[1].start);
-        }
     }
 
     if (self.tokens.items.len > 0) {
@@ -99,7 +105,9 @@ pub fn tokenize(self: *Ast) !void {
         .end = self.input.len,
     });
 
-    // for (self.tokens.items) |token| self.debugToken(token);
+    if (self.debug) {
+        for (self.tokens.items) |token| self.debugToken(token);
+    }
 
     self.state = .tokenized;
 }
@@ -143,11 +151,12 @@ fn firstToken(self: Ast, previous_token: ?tokens.Token, index: usize) ?tokens.To
 
     for (tokens.elements) |element| {
         if (index + element.syntax.len > self.input.len) continue;
-        const matched = std.mem.eql(u8, element.syntax, self.input[index .. index + element.syntax.len]);
-        const matched_after = self.matchAfter(element, index);
-        const matched_close = self.matchClose(element);
+        const matched = std.mem.startsWith(u8, self.input[index..], element.syntax);
+        const matched_after = matched and self.matchAfter(element, index);
+        const matched_close = matched_after and self.matchClose(element);
+        const matched_clear = matched_close and !element.clear or (element.clear and self.isCleared(index));
 
-        if (matched and matched_after and matched_close) {
+        if (matched and matched_after and matched_close and matched_clear) {
             const token: tokens.Token = .{
                 .element = element,
                 .start = index,
@@ -182,7 +191,7 @@ fn matchClose(self: Ast, element: tokens.Element) bool {
     var index: usize = self.tokens.items.len - 1;
     while (index > 0) : (index -= 1) {
         switch (self.tokens.items[index].element.type) {
-            .text, .linebreak => continue,
+            .text, .linebreak, .italic => continue,
             else => return self.tokens.items[index].element.type == element.expect,
         }
     }
@@ -203,6 +212,7 @@ fn parseChildNodes(self: *Ast, start: usize, node: *Node) error{OutOfMemory}!boo
             .block => self.parseBlock(child_node, index, self.getCloseIndex(index)),
             .unordered_list_item => try self.parseList(node, child_node, index, .unordered),
             .ordered_list_item => try self.parseList(node, child_node, index, .ordered),
+            .text => try self.parseText(child_node),
             else => {},
         }
         self.nullifyToken(end);
@@ -284,10 +294,78 @@ fn appendText(self: *Ast, start: usize, end: usize) !void {
 // Insert a text token at the given index.
 fn insertText(self: *Ast, index: usize, start: usize, end: usize) !void {
     try self.tokens.insert(index, .{
+        .element = tokens.Paragraph,
+        .start = start,
+        .end = end,
+    });
+
+    try self.tokens.insert(index + 1, .{
         .element = tokens.Text,
         .start = start,
         .end = end,
     });
+}
+
+fn parseText(
+    self: *Ast,
+    node: *Node,
+) !void {
+    const input = self.input[node.token.start..node.token.end];
+    var cursor: usize = 0;
+    var text_start: usize = 0;
+
+    while (cursor < input.len) {
+        for (tokens.formatters) |element| {
+            if (std.mem.startsWith(u8, input[cursor..], element.syntax)) {
+                const offset = cursor + element.syntax.len;
+                if (std.mem.indexOf(u8, input[offset..], element.syntax)) |end_index| {
+                    const pre_text_node = try self.createNode(.{
+                        .element = tokens.Text,
+                        .start = node.token.start + text_start,
+                        .end = node.token.start + cursor,
+                    });
+
+                    try node.children.append(pre_text_node);
+
+                    const child_node = try self.createNode(.{
+                        .element = element,
+                        .start = node.token.start + cursor,
+                        .end = node.token.start + offset + end_index + element.syntax.len,
+                    });
+
+                    try node.children.append(child_node);
+
+                    const text_node = try self.createNode(.{
+                        .element = tokens.Text,
+                        .start = child_node.token.start + element.syntax.len,
+                        .end = child_node.token.end - element.syntax.len,
+                    });
+
+                    try child_node.children.append(text_node);
+                    cursor = offset + end_index + element.syntax.len;
+                    text_start = cursor;
+                    continue;
+                }
+            }
+        }
+        cursor += 1;
+    }
+    if (node.children.items.len > 0) {
+        const last_child = node.children.items[node.children.items.len - 1];
+        if (last_child.token.end < node.token.end) {
+            const remainder_node = try self.createNode(.{
+                .element = tokens.Text,
+                .start = last_child.token.end,
+                .end = node.token.end,
+            });
+            try node.children.append(remainder_node);
+        }
+        node.token = .{
+            .element = tokens.Text,
+            .start = node.token.start,
+            .end = node.token.start,
+        };
+    }
 }
 
 // Translate a link/image title and href into a single node. Nullify dangling nodes.

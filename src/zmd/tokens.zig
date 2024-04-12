@@ -33,6 +33,7 @@ pub const ElementType = enum {
     linebreak,
     none,
     eof,
+    container,
 };
 
 pub const Element = struct {
@@ -52,8 +53,6 @@ pub const elements = [_]Element{
     .{ .type = .h3, .syntax = "###", .close = .linebreak, .trim = true, .clear = true },
     .{ .type = .h2, .syntax = "##", .close = .linebreak, .trim = true, .clear = true },
     .{ .type = .h1, .syntax = "#", .close = .linebreak, .trim = true, .clear = true },
-    .{ .type = .bold, .syntax = "**", .close = .bold_close },
-    .{ .type = .italic, .syntax = "_", .close = .italic_close },
     .{ .type = .block, .syntax = "```", .close = .block_close, .clear = true },
     .{ .type = .code, .syntax = "`", .close = .code_close },
     .{ .type = .image_title, .syntax = "![", .close = .title_close },
@@ -70,12 +69,15 @@ pub const elements = [_]Element{
 pub const toggles = std.ComptimeStringMap(
     Element,
     .{
-        .{ "bold", .{ .type = .bold_close, .syntax = "**" } },
-        .{ "italic", .{ .type = .italic_close, .syntax = "_" } },
         .{ "code", .{ .type = .code_close, .syntax = "`" } },
         .{ "block", .{ .type = .block_close, .syntax = "```" } },
     },
 );
+
+pub const formatters = [_]Element{
+    .{ .type = .bold, .syntax = "**", .close = .bold_close },
+    .{ .type = .italic, .syntax = "_", .close = .italic_close },
+};
 
 pub const Linebreak = Element{ .type = .linebreak };
 pub const Root = Element{ .type = .root, .close = .eof };
