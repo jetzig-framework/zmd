@@ -209,7 +209,7 @@ fn parseChildNodes(self: *Ast, start: usize, node: *Node) error{OutOfMemory}!boo
         switch (child_node.token.element.type) {
             .link_title => self.parseLink(child_node, index, .link),
             .image_title => self.parseLink(child_node, index, .image),
-            .block => self.parseBlock(child_node, index, self.getCloseIndex(index)),
+            .block, .code => self.parseBlock(child_node, index),
             .unordered_list_item => try self.parseList(node, child_node, index, .unordered),
             .ordered_list_item => try self.parseList(node, child_node, index, .ordered),
             .text => try self.parseText(child_node),
@@ -242,6 +242,11 @@ fn getCloseIndex(self: Ast, start: usize) ?usize {
 // e.g. `# Foo` is comprised of a `.h1` and a `.text` token).
 fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token, cleared: bool) !void {
     if (prev_token.end >= token.start) return;
+
+    switch (prev_token.element.type) {
+        .code, .block => return,
+        else => {},
+    }
 
     const cleared_token = cleared and token.element.clear;
 
@@ -399,31 +404,23 @@ fn swapText(self: Ast, node: *Node, index: usize) void {
     node.token = .{ .element = tokens.Text, .start = token.start, .end = token.end };
 }
 
-// Append a meta value to a `block` node. Replace dangling text token with a `.none` element.
-fn parseBlock(self: *Ast, node: *Node, index: usize, maybe_end: ?usize) void {
-    if (maybe_end == null) return; // We don't have a closing ``` so don't try to parse
-    if (index + 2 >= self.tokens.items.len) return;
-
-    const next_token = self.tokens.items[index + 1];
-    const has_meta = !std.mem.startsWith(u8, self.input[next_token.start..next_token.end], "\n");
+// Parse a `block` or `code` element. Set raw content on node so it can be written out directly
+// (i.e. any other tokens within the code/block element are ignored).
+// Add `meta` to `block` node if present (`node.meta` will be "zig" for ```zig code blocks).
+fn parseBlock(self: *Ast, node: *Node, index: usize) void {
+    const token = self.tokens.items[index];
+    const close_token = if (self.getCloseIndex(index)) |close| self.tokens.items[close] else return;
+    const content = self.input[node.token.start + node.token.element.syntax.len .. close_token.start];
+    const has_meta = token.element.type == .block and !std.mem.startsWith(u8, content, "\n");
 
     // meta is the "zig" in ```zig
     if (has_meta) {
-        if (std.mem.indexOfScalar(u8, self.input[next_token.start..next_token.end], '\n')) |linebreak_index| {
-            node.meta = self.input[next_token.start .. next_token.start + linebreak_index];
-            node.content = self.input[next_token.start + linebreak_index + 1 .. next_token.end];
-            self.tokens.items[index + 1] = .{
-                .element = next_token.element,
-                .start = next_token.start + linebreak_index + 1,
-                .end = next_token.end - 1,
-            };
+        if (std.mem.indexOfScalar(u8, content, '\n')) |linebreak_index| {
+            node.meta = content[0..linebreak_index];
+            node.content = strip(content[linebreak_index..]);
         }
     } else {
-        self.tokens.items[index + 1] = .{
-            .element = next_token.element,
-            .start = next_token.start + 1,
-            .end = next_token.end - 1,
-        };
+        node.content = strip(content);
     }
 }
 
@@ -506,6 +503,10 @@ fn createNode(self: Ast, token: tokens.Token) !*Node {
         .children = std.ArrayList(*Node).init(self.allocator),
     };
     return node;
+}
+
+inline fn strip(input: []const u8) []const u8 {
+    return std.mem.trim(u8, input, &std.ascii.whitespace);
 }
 
 // Output a parsed tree with indentation to stderr.

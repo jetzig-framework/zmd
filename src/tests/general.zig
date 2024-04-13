@@ -203,3 +203,27 @@ test "parse underscore in link" {
         \\
     , html);
 }
+
+test "parse underscores in block" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    try zmd.parse(
+        \\```zig
+        \\if (foo_bar_baz) return true;
+        \\```
+    );
+
+    const html = try zmd.toHtml(fragments);
+    defer std.testing.allocator.free(html);
+
+    try std.testing.expectEqualStrings(
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><pre class="language-zig" style="font-family: Monospace;"><code>if (foo_bar_baz) return true;</code></pre></main>
+        \\</body>
+        \\</html>
+        \\
+    , html);
+}

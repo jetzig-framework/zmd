@@ -31,12 +31,18 @@ pub fn toHtml(
     var buf = std.ArrayList(u8).init(allocator);
     const buf_writer = buf.writer();
 
-    if (self.token.element.type == .text) {
-        if (self.children.items.len == 0) {
-            try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
-        } else {
-            try buf_writer.writeAll(input[self.token.start..self.token.end]);
-        }
+    switch (self.token.element.type) {
+        .text => {
+            if (self.children.items.len == 0) {
+                try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
+            } else {
+                try buf_writer.writeAll(input[self.token.start..self.token.end]);
+            }
+        },
+        .code, .block => {
+            try buf_writer.writeAll(try html.escape(allocator, self.content));
+        },
+        else => {},
     }
 
     for (self.children.items) |node| {
