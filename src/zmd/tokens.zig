@@ -66,13 +66,23 @@ pub const elements = [_]Element{
     .{ .type = .ordered_list_item, .syntax = "1. ", .close = .linebreak, .clear = true },
 };
 
-pub const toggles = std.ComptimeStringMap(
-    Element,
-    .{
-        .{ "code", .{ .type = .code_close, .syntax = "`" } },
-        .{ "block", .{ .type = .block_close, .syntax = "```" } },
-    },
-);
+pub const toggles = if (@hasDecl(std, "ComptimeStringMap"))
+    std.ComptimeStringMap(
+        Element,
+        .{
+            .{ "code", .{ .type = .code_close, .syntax = "`" } },
+            .{ "block", .{ .type = .block_close, .syntax = "```" } },
+        },
+    )
+else if (@hasDecl(std, "StaticStringMap"))
+    std.StaticStringMap(Element).initComptime(
+        .{
+            .{ "code", .{ .type = .code_close, .syntax = "`" } },
+            .{ "block", .{ .type = .block_close, .syntax = "```" } },
+        },
+    )
+else
+    unreachable;
 
 pub const formatters = [_]Element{
     .{ .type = .bold, .syntax = "**", .close = .bold_close },
