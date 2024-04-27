@@ -24,8 +24,11 @@ pub fn toHtml(
 ) !void {
     const formatter = switch (self.token.element.type) {
         .linebreak, .none, .eof => null,
-        .paragraph => if (level == 1) getFormatter(fragments, "paragraph") else getFormatter(fragments, "text"),
-        inline else => |element_type| getFormatter(fragments, @tagName(element_type)),
+        .paragraph => if (level == 1)
+            getFormatterComptime(fragments, "paragraph")
+        else
+            getFormatterComptime(fragments, "text"),
+        inline else => |element_type| getFormatterComptime(fragments, @tagName(element_type)),
     };
 
     var buf = std.ArrayList(u8).init(allocator);
@@ -66,8 +69,8 @@ pub fn toHtml(
     }
 }
 
-// Try to find a formatter from the provided fragments struct, fall back to defaults.
-fn getFormatter(fragments: type, comptime element_type: []const u8) Formatter {
+/// Try to find a formatter from the provided fragments struct, fall back to defaults.
+pub fn getFormatterComptime(fragments: type, comptime element_type: []const u8) Formatter {
     const formatter = if (@hasDecl(fragments, element_type))
         @field(fragments, element_type)
     else if (@hasDecl(html.DefaultFragments, element_type))
@@ -75,11 +78,37 @@ fn getFormatter(fragments: type, comptime element_type: []const u8) Formatter {
     else
         html.DefaultFragments.default;
 
-    switch (@typeInfo(@TypeOf(formatter))) {
-        .Fn => return Formatter{ .function = &formatter },
-        .Struct => return Formatter{ .array = formatter },
+    return switch (@typeInfo(@TypeOf(formatter))) {
+        .Fn => Formatter{ .function = &formatter },
+        .Struct => Formatter{ .array = formatter },
         else => unreachable,
+    };
+}
+
+/// Same as `getFormatterComptime` but does not require a comptime argument.
+pub fn getFormatter(fragments: type, element_type: []const u8) Formatter {
+    inline for (@typeInfo(fragments).Struct.decls) |decl| {
+        if (std.mem.eql(u8, decl.name, element_type)) {
+            return makeFormatter(fragments, decl.name);
+        }
     }
+
+    inline for (@typeInfo(html.DefaultFragments).Struct.decls) |decl| {
+        if (std.mem.eql(u8, decl.name, element_type)) {
+            return makeFormatter(html.DefaultFragments, decl.name);
+        }
+    }
+
+    return makeFormatter(html.DefaultFragments, "default");
+}
+
+fn makeFormatter(fragments: type, comptime decl: []const u8) Formatter {
+    const formatter = @field(fragments, decl);
+    return switch (@typeInfo(@TypeOf(formatter))) {
+        .Fn => Formatter{ .function = &formatter },
+        .Struct => Formatter{ .array = formatter },
+        else => unreachable,
+    };
 }
 
 const Formatter = union(enum) {
