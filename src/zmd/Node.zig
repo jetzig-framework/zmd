@@ -79,21 +79,21 @@ pub fn getFormatterComptime(fragments: type, comptime element_type: []const u8) 
         html.DefaultFragments.default;
 
     return switch (@typeInfo(@TypeOf(formatter))) {
-        .Fn => Formatter{ .function = &formatter },
-        .Struct => Formatter{ .array = formatter },
+        .@"fn" => Formatter{ .function = &formatter },
+        .@"struct" => Formatter{ .array = formatter },
         else => unreachable,
     };
 }
 
 /// Same as `getFormatterComptime` but does not require a comptime argument.
 pub fn getFormatter(fragments: type, element_type: []const u8) Formatter {
-    inline for (@typeInfo(fragments).Struct.decls) |decl| {
+    inline for (@typeInfo(fragments).@"struct".decls) |decl| {
         if (std.mem.eql(u8, decl.name, element_type)) {
             return makeFormatter(fragments, decl.name);
         }
     }
 
-    inline for (@typeInfo(html.DefaultFragments).Struct.decls) |decl| {
+    inline for (@typeInfo(html.DefaultFragments).@"struct".decls) |decl| {
         if (std.mem.eql(u8, decl.name, element_type)) {
             return makeFormatter(html.DefaultFragments, decl.name);
         }
@@ -105,8 +105,8 @@ pub fn getFormatter(fragments: type, element_type: []const u8) Formatter {
 fn makeFormatter(fragments: type, comptime decl: []const u8) Formatter {
     const formatter = @field(fragments, decl);
     return switch (@typeInfo(@TypeOf(formatter))) {
-        .Fn => Formatter{ .function = &formatter },
-        .Struct => Formatter{ .array = formatter },
+        .@"fn" => Formatter{ .function = &formatter },
+        .@"struct" => Formatter{ .array = formatter },
         else => unreachable,
     };
 }
