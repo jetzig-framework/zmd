@@ -9,6 +9,14 @@ input: []const u8,
 tokens_list: std.ArrayList(tokens.Token),
 state: enum { initial, tokenized, parsed } = .initial,
 current_node: *Node = undefined,
+/// Used to optimize tokenization: the last `isCleared()` result
+last_cleared: struct {
+    index: usize,
+    cleared: bool,
+} = .{
+    .index = 0,
+    .cleared = true,
+},
 visited: std.AutoHashMap(usize, bool) = undefined,
 elements_map: std.AutoHashMap(tokens.ElementType, tokens.Element) = undefined,
 debug: bool = false,
@@ -114,15 +122,33 @@ pub fn tokenize(self: *Ast) !void {
 
 // Detect if a given input index proceeds a linebreak (possibly with trailing whitespace), or if
 // the cursor is at first character in the input.
-fn isCleared(self: Ast, index: usize) bool {
+fn isCleared(self: *Ast, index: usize) bool {
     if (index == 0) return true;
-    var cursor = index - 1;
-    while (cursor > 0) : (cursor -= 1) {
-        if (self.input[cursor] == '\n') return true;
-        if (!std.ascii.isWhitespace(self.input[cursor])) return false;
+
+    // It's assumed that `index` is always increasing
+    std.debug.assert(index >= self.last_cleared.index);
+
+    var cursor = index;
+    while (cursor > self.last_cleared.index) {
+        cursor -= 1;
+        if (self.input[cursor] == '\n') {
+            self.last_cleared = .{
+                .index = index,
+                .cleared = true,
+            };
+            return true;
+        }
+        if (!std.ascii.isWhitespace(self.input[cursor])) {
+            self.last_cleared = .{
+                .index = index,
+                .cleared = false,
+            };
+            return false;
+        }
     }
 
-    return true; // We made it to the start of the input which counts as cleared.
+    self.last_cleared.index = index;
+    return self.last_cleared.cleared;
 }
 
 // True if current character is a blank line or BOF
@@ -131,7 +157,7 @@ fn isEmptyLine(self: Ast, index: usize) bool {
 }
 
 // Return the first token in the input from the given index.
-fn firstToken(self: Ast, previous_token: ?tokens.Token, index: usize) ?tokens.Token {
+fn firstToken(self: *Ast, previous_token: ?tokens.Token, index: usize) ?tokens.Token {
     if (previous_token) |previous| {
         if (tokens.toggles.get(@tagName(previous.element.type))) |toggle| {
             const offset = previous.start + previous.element.syntax.len;
@@ -149,12 +175,13 @@ fn firstToken(self: Ast, previous_token: ?tokens.Token, index: usize) ?tokens.To
         return .{ .element = tokens.Linebreak, .start = index, .end = index + 1 };
     }
 
+    const index_clear = self.isCleared(index);
     for (tokens.elements) |element| {
         if (index + element.syntax.len > self.input.len) continue;
         const matched = std.mem.startsWith(u8, self.input[index..], element.syntax);
         const matched_after = matched and self.matchAfter(element, index);
         const matched_close = matched_after and self.matchClose(element);
-        const matched_clear = matched_close and !element.clear or (element.clear and self.isCleared(index));
+        const matched_clear = matched_close and !element.clear or (element.clear and index_clear);
 
         if (matched and matched_after and matched_close and matched_clear) {
             const token: tokens.Token = .{
