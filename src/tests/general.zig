@@ -227,3 +227,11 @@ test "parse underscores in block" {
         \\
     , html);
 }
+
+test "parse repeated whitespace" {
+    var zmd = Zmd.init(std.testing.allocator);
+    defer zmd.deinit();
+
+    // Used to be really slow
+    try zmd.parse(" " ** 40_000);
+}
