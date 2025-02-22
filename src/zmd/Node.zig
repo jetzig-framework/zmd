@@ -79,8 +79,8 @@ pub fn getFormatterComptime(fragments: type, comptime element_type: []const u8) 
         html.DefaultFragments.default;
 
     return switch (@typeInfo(@TypeOf(formatter))) {
-        .@"fn" => Formatter{ .function = &formatter },
-        .@"struct" => Formatter{ .array = formatter },
+        .Fn => Formatter{ .function = &formatter },
+        .Struct => Formatter{ .array = formatter },
         else => unreachable,
     };
 }
