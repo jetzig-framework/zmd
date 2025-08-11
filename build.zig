@@ -6,20 +6,24 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "zmd",
-        .root_source_file = b.path("src/zmd.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/zmd.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
         .use_llvm = false,
     });
 
     b.installArtifact(lib);
 
     const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/zmd.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/zmd.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     _ = b.addModule("zmd", .{ .root_source_file = b.path("src/zmd.zig") });

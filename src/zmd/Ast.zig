@@ -552,9 +552,9 @@ fn debugTree(node: *Node, level: usize) void {
 fn debugToken(self: Ast, token: tokens.Token) void {
     var buf = std.ArrayList(u8).init(self.allocator);
     defer buf.deinit();
-    const writer = buf.writer();
+    var writer = buf.writer().adaptToNewApi().new_interface;
     writer.writeByte('"') catch @panic("OOM");
-    std.zig.stringEscape(self.input[token.start..token.end], "", .{}, writer) catch @panic("OOM");
+    std.zig.stringEscape(self.input[token.start..token.end], &writer) catch @panic("OOM");
     writer.writeByte('"') catch @panic("OOM");
     std.debug.print("[{s}] {s}\n", .{ @tagName(token.element.type), buf.items });
 }
