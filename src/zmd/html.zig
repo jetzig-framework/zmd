@@ -8,7 +8,7 @@ const Node = @import("Node.zig");
 /// content, or a 2-element tuple containing the open and close for each node.
 pub const DefaultFragments = struct {
     pub fn root(allocator: std.mem.Allocator, node: Node) ![]const u8 {
-        return try std.fmt.allocPrint(allocator,
+        return std.fmt.allocPrint(allocator,
             \\<!DOCTYPE html>
             \\<html>
             \\<body>

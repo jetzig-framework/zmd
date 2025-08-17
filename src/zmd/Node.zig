@@ -19,7 +19,7 @@ pub fn toHtml(
     allocator: std.mem.Allocator,
     input: []const u8,
     fragments: type,
-    writer: anytype,
+    writer: *std.Io.Writer,
     level: usize,
 ) !void {
     const formatter = switch (self.token.element.type) {
@@ -31,35 +31,42 @@ pub fn toHtml(
         inline else => |element_type| getFormatterComptime(fragments, @tagName(element_type)),
     };
 
-    var buf = std.ArrayList(u8).init(allocator);
-    const buf_writer = buf.writer();
+    var buffer: std.ArrayList(u8) = try .initCapacity(allocator, 0);
+    defer buffer.deinit(allocator);
+    var bw: std.Io.Writer.Allocating = .fromArrayList(allocator, &buffer);
+    defer bw.deinit();
 
     switch (self.token.element.type) {
         .text => {
             if (self.children.items.len == 0) {
-                try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
+                const string = try html.escape(allocator, input[self.token.start..self.token.end]);
+                try bw.writer.writeAll(string);
             } else {
-                try buf_writer.writeAll(input[self.token.start..self.token.end]);
+                try bw.writer.writeAll(input[self.token.start..self.token.end]);
             }
         },
         .code, .block => {
-            try buf_writer.writeAll(try html.escape(allocator, self.content));
+            const string = try html.escape(allocator, self.content);
+            try bw.writer.writeAll(string);
         },
         else => {},
     }
 
     for (self.children.items) |node| {
-        try node.toHtml(allocator, input, fragments, buf_writer, level + 1);
+        try node.toHtml(allocator, input, fragments, &bw.writer, level + 1);
     }
 
     self.content = if (self.token.element.trim)
-        std.mem.trim(u8, buf.items, &std.ascii.whitespace)
+        std.mem.trim(u8, buffer.items, &std.ascii.whitespace)
     else
-        buf.items;
+        buffer.items;
 
     if (formatter) |capture| {
         switch (capture) {
-            .function => |function| try writer.writeAll(try function(allocator, self.*)),
+            .function => |function| {
+                const string = try function(allocator, self.*);
+                try writer.writeAll(string);
+            },
             .array => |array| {
                 try writer.writeAll(array[0]);
                 try writer.writeAll(self.content);

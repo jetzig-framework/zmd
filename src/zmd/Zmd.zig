@@ -18,13 +18,13 @@ pub fn init(allocator: std.mem.Allocator) Zmd {
     return .{
         .allocator = allocator,
         .arena = std.heap.ArenaAllocator.init(allocator),
-        .nodes = std.ArrayList(*Node).init(allocator),
+        .nodes = (std.ArrayList(*Node).initCapacity(allocator, 0) catch unreachable),
     };
 }
 
 /// Deinitialize and free allocated memory.
 pub fn deinit(self: *Zmd) void {
-    self.nodes.deinit();
+    self.nodes.deinit(self.allocator);
     self.arena.deinit();
 }
 
@@ -42,7 +42,7 @@ pub fn parse(self: *Zmd, input: []const u8) !void {
     try parser.tokenize();
 
     const root = try parser.parse();
-    try self.nodes.append(root);
+    try self.nodes.append(self.allocator, root);
 
     self.input = normalized;
 
@@ -53,20 +53,18 @@ pub fn parse(self: *Zmd, input: []const u8) !void {
 pub fn toHtml(self: *const Zmd, fragments: type) ![]const u8 {
     if (self.state != .parsed) unreachable;
 
-    var arena = std.heap.ArenaAllocator.init(self.allocator);
+    var arena: std.heap.ArenaAllocator = .init(self.allocator);
     defer arena.deinit();
 
     const allocator = arena.allocator();
-    var buf = std.ArrayList(u8).init(allocator);
-    const base_writer = buf.writer();
-    var bw = std.io.bufferedWriter(base_writer);
-    const writer = bw.writer();
+    var buffer: std.ArrayList(u8) = try .initCapacity(allocator, 0);
+    defer buffer.deinit(allocator);
+    var bw: std.Io.Writer.Allocating = .fromArrayList(allocator, &buffer);
+    defer bw.deinit();
 
-    try self.nodes.items[0].toHtml(allocator, self.input, fragments, writer, 0);
+    try self.nodes.items[0].toHtml(allocator, self.input, fragments, &bw.writer, 0);
 
-    try bw.flush();
-
-    return try self.allocator.dupe(u8, buf.items);
+    return self.allocator.dupe(u8, buffer.items);
 }
 
 // Normalize text to unix-style linebreaks and ensure ending with a linebreak to simplify

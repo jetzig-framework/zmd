@@ -2,9 +2,10 @@ const std = @import("std");
 
 const Zmd = @import("../zmd/Zmd.zig");
 const fragments = @import("../zmd/html.zig").DefaultFragments;
+const allocator = std.testing.allocator;
 
 test "parse markdown and translate to HTML" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -59,7 +60,7 @@ test "parse markdown and translate to HTML" {
 }
 
 test "parse content without trailing linebreak before eof" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -67,7 +68,7 @@ test "parse content without trailing linebreak before eof" {
     );
 
     const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -82,7 +83,7 @@ test "parse content without trailing linebreak before eof" {
 }
 
 test "parse paragraph leading with a token" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -92,7 +93,7 @@ test "parse paragraph leading with a token" {
     );
 
     const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -109,7 +110,7 @@ test "parse paragraph leading with a token" {
 }
 
 test "parse indented list" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -119,7 +120,7 @@ test "parse indented list" {
     );
 
     const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -133,7 +134,7 @@ test "parse indented list" {
 }
 
 test "parse underscores in code element" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -143,7 +144,7 @@ test "parse underscores in code element" {
     );
 
     const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -157,7 +158,7 @@ test "parse underscores in code element" {
 }
 
 test "parse parentheses in paragraph" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -165,7 +166,7 @@ test "parse parentheses in paragraph" {
     );
 
     const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -181,7 +182,7 @@ test "parse parentheses in paragraph" {
 }
 
 test "parse underscore in link" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -189,7 +190,7 @@ test "parse underscore in link" {
     );
 
     const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -205,7 +206,7 @@ test "parse underscore in link" {
 }
 
 test "parse underscores in block" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     try zmd.parse(
@@ -215,7 +216,7 @@ test "parse underscores in block" {
     );
 
     const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -229,7 +230,7 @@ test "parse underscores in block" {
 }
 
 test "parse repeated whitespace" {
-    var zmd = Zmd.init(std.testing.allocator);
+    var zmd = Zmd.init(allocator);
     defer zmd.deinit();
 
     // Used to be really slow
