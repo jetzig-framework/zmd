@@ -1,13 +1,14 @@
 const std = @import("std");
+const allocator = std.testing.allocator;
 
 const Zmd = @import("../zmd/Zmd.zig");
 const fragments = @import("../zmd/html.zig").DefaultFragments;
 
 test "parse markdown and translate to HTML" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\# Header
         \\## Sub-header
         \\### Sub-sub-header
@@ -29,8 +30,8 @@ test "parse markdown and translate to HTML" {
         \\
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -59,15 +60,15 @@ test "parse markdown and translate to HTML" {
 }
 
 test "parse content without trailing linebreak before eof" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\# Header
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -82,17 +83,17 @@ test "parse content without trailing linebreak before eof" {
 }
 
 test "parse paragraph leading with a token" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\# Header
         \\
         \\**bold** text at the start of a paragraph
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -109,17 +110,17 @@ test "parse paragraph leading with a token" {
 }
 
 test "parse indented list" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\  * foo
         \\  * bar
         \\  * baz
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -133,17 +134,17 @@ test "parse indented list" {
 }
 
 test "parse underscores in code element" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\* `foo_bar`
         \\* `baz_qux`
         \\* `quux_corge`
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -157,15 +158,15 @@ test "parse underscores in code element" {
 }
 
 test "parse parentheses in paragraph" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\some text (with parentheses) in a paragraph
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -181,15 +182,15 @@ test "parse parentheses in paragraph" {
 }
 
 test "parse underscore in link" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\a _link_ to [here_doc](https://en.wikipedia.org/wiki/Here_document) with _italics_ and **bold**
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -205,17 +206,17 @@ test "parse underscore in link" {
 }
 
 test "parse underscores in block" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\```zig
         \\if (foo_bar_baz) return true;
         \\```
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -229,9 +230,9 @@ test "parse underscores in block" {
 }
 
 test "parse repeated whitespace" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
     // Used to be really slow
-    try zmd.parse(" " ** 40_000);
+    try zmd.parse(allocator, " " ** 40_000);
 }

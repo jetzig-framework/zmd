@@ -1,18 +1,18 @@
 const std = @import("std");
-
+const allocator = std.testing.allocator;
 const Zmd = @import("../zmd/Zmd.zig");
 const fragments = @import("../zmd/html.zig").DefaultFragments;
 
 test "h1" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\# Header
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -27,15 +27,15 @@ test "h1" {
 }
 
 test "h2" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\## Header
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -50,15 +50,15 @@ test "h2" {
 }
 
 test "h3" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\### Header
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -73,15 +73,15 @@ test "h3" {
 }
 
 test "h4" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\#### Header
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -96,15 +96,15 @@ test "h4" {
 }
 
 test "h5" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\##### Header
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -119,15 +119,15 @@ test "h5" {
 }
 
 test "h6" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\###### Header
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -142,15 +142,15 @@ test "h6" {
 }
 
 test "bold (dangling)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\**bold**
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -166,15 +166,15 @@ test "bold (dangling)" {
 }
 
 test "bold (embedded)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\some **bold** text
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -190,15 +190,15 @@ test "bold (embedded)" {
 }
 
 test "italic (dangling)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\_italic_
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -214,15 +214,15 @@ test "italic (dangling)" {
 }
 
 test "italic (embedded)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\some _italic_ text
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -238,15 +238,15 @@ test "italic (embedded)" {
 }
 
 test "code (dangling)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\`code`
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -262,15 +262,15 @@ test "code (dangling)" {
 }
 
 test "code (embedded)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\some `code` text
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -286,10 +286,10 @@ test "code (embedded)" {
 }
 
 test "block" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\```zig
         \\if (1 < 10) {
         \\   return "1 is less than 10";
@@ -297,8 +297,8 @@ test "block" {
         \\```
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -314,15 +314,15 @@ test "block" {
 }
 
 test "image" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\![image title](https://example.com/image.png)
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -338,15 +338,15 @@ test "image" {
 }
 
 test "link" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\[link title](https://example.com/)
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -362,17 +362,17 @@ test "link" {
 }
 
 test "paragraph" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\# a title
         \\
         \\a paragraph
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -389,17 +389,17 @@ test "paragraph" {
 }
 
 test "unordered list (+)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\+ list item 1
         \\+ list item 2
         \\+ list item 3
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -413,17 +413,17 @@ test "unordered list (+)" {
 }
 
 test "unordered list (-)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\- list item 1
         \\- list item 2
         \\- list item 3
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -437,17 +437,17 @@ test "unordered list (-)" {
 }
 
 test "unordered list (*)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\* list item 1
         \\* list item 2
         \\* list item 3
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -461,17 +461,17 @@ test "unordered list (*)" {
 }
 
 test "ordered list (1., 1., 1.)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\1. list item 1
         \\1. list item 2
         \\1. list item 3
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>
@@ -485,17 +485,17 @@ test "ordered list (1., 1., 1.)" {
 }
 
 test "list with embedded elements" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    var zmd = try Zmd.init(allocator);
+    defer zmd.deinit(allocator);
 
-    try zmd.parse(
+    try zmd.parse(allocator,
         \\* list item with [my link](https://www.example.com/)
         \\* list item with ![my image](https://www.example.com/image.png)
         \\* list item with **bold** and _italic_ text
     );
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
+    const html = try zmd.toHtml(allocator, fragments);
+    defer allocator.free(html);
 
     try std.testing.expectEqualStrings(
         \\<!DOCTYPE html>

@@ -1,10 +1,9 @@
 const std = @import("std");
 const Node = @import("Node.zig");
 const tokens = @import("tokens.zig");
-
+const Allocator = std.mem.Allocator;
 const Ast = @This();
 
-allocator: std.mem.Allocator,
 input: []const u8,
 tokens_list: std.ArrayList(tokens.Token),
 state: enum { initial, tokenized, parsed } = .initial,
@@ -22,31 +21,28 @@ elements_map: std.AutoHashMap(tokens.ElementType, tokens.Element) = undefined,
 debug: bool = false,
 
 /// Initialize a new Ast.
-pub fn init(allocator: std.mem.Allocator, input: []const u8) Ast {
-    return .{
-        .allocator = allocator,
-        .input = input,
-        .tokens_list = std.ArrayList(tokens.Token).init(allocator),
-        // .debug = true,
-    };
+pub fn init(allocator: Allocator, input: []const u8) !Ast {
+    const tl: std.ArrayList(tokens.Token) = try .initCapacity(allocator, 1);
+    return .{ .input = input, .tokens_list = tl };
 }
 
 /// Deinitialize and free allocated memory.
-pub fn deinit(self: *Ast) void {
-    self.tokens_list.deinit();
+pub fn deinit(self: *Ast, allocator: Allocator) void {
+    self.tokens_list.deinit(allocator);
 }
 
 /// Parse tokenized input. Must call `tokenize()` first.
-pub fn parse(self: *Ast) !*Node {
+pub fn parse(self: *Ast, allocator: Allocator) !*Node {
     if (self.state != .tokenized) unreachable;
 
     const root = try self.createNode(
+        allocator,
         .{ .element = tokens.Root, .start = 0, .end = self.input.len },
     );
 
-    self.visited = std.AutoHashMap(usize, bool).init(self.allocator);
+    self.visited = std.AutoHashMap(usize, bool).init(allocator);
 
-    _ = try self.parseChildNodes(0, root);
+    _ = try self.parseChildNodes(allocator, 0, root);
 
     if (self.debug) debugTree(root, 0);
 
@@ -56,10 +52,10 @@ pub fn parse(self: *Ast) !*Node {
 }
 
 /// Iterate through input, separating into tokens to be fed to the parser.
-pub fn tokenize(self: *Ast) !void {
+pub fn tokenize(self: *Ast, allocator: Allocator) !void {
     if (self.state != .initial) unreachable;
 
-    self.elements_map = std.AutoHashMap(tokens.ElementType, tokens.Element).init(self.allocator);
+    self.elements_map = std.AutoHashMap(tokens.ElementType, tokens.Element).init(allocator);
 
     for (tokens.elements) |element| {
         try self.elements_map.put(element.type, element);
@@ -69,18 +65,21 @@ pub fn tokenize(self: *Ast) !void {
 
     var previous_token: ?tokens.Token = null;
 
-    try self.tokens_list.append(.{ .element = tokens.Root, .start = 0, .end = 0 });
+    try self.tokens_list.append(
+        allocator,
+        .{ .element = tokens.Root, .start = 0, .end = 0 },
+    );
 
     while (index < self.input.len) {
         if (self.firstToken(previous_token, index)) |token| {
             const cleared = self.isCleared(index);
-            if (previous_token) |previous| try self.maybeTokenizeText(previous, token, cleared);
+            if (previous_token) |previous| try self.maybeTokenizeText(allocator, previous, token, cleared);
 
             if (self.isEmptyLine(index) and
                 !token.element.clear and
-                token.element.type != .linebreak) try self.appendParagraph(index);
+                token.element.type != .linebreak) try self.appendParagraph(allocator, index);
 
-            try self.tokens_list.append(token);
+            try self.tokens_list.append(allocator, token);
             previous_token = token;
 
             // Prepend a text token if the first token (after the root token) does not start at
@@ -93,7 +92,7 @@ pub fn tokenize(self: *Ast) !void {
                 else
                     self.tokens_list.items[1].start;
 
-                if (0 != text_end) try self.insertText(1, 0, text_end);
+                if (0 != text_end) try self.insertText(allocator, 1, 0, text_end);
             }
             index = token.end;
         } else index += 1;
@@ -103,18 +102,18 @@ pub fn tokenize(self: *Ast) !void {
         const last_token = self.tokens_list.items[self.tokens_list.items.len - 1];
         // Append a text node for the remainder of the buffer if present:
         if (last_token.end < self.input.len - 1) {
-            try self.appendText(last_token.end, self.input.len);
+            try self.appendText(allocator, last_token.end, self.input.len);
         }
     }
 
-    try self.tokens_list.append(.{
+    try self.tokens_list.append(allocator, .{
         .element = .{ .type = .eof },
         .start = self.input.len,
         .end = self.input.len,
     });
 
     if (self.debug) {
-        for (self.tokens_list.items) |token| self.debugToken(token);
+        for (self.tokens_list.items) |token| self.debugToken(allocator, token);
     }
 
     self.state = .tokenized;
@@ -226,26 +225,47 @@ fn matchClose(self: Ast, element: tokens.Element) bool {
 }
 
 // Recursively build a tree of nodes from the given token index and a provided root node.
-fn parseChildNodes(self: *Ast, start: usize, node: *Node) error{OutOfMemory}!bool {
+fn parseChildNodes(
+    self: *Ast,
+    allocator: Allocator,
+    start: usize,
+    node: *Node,
+) error{OutOfMemory}!bool {
     if (try self.visited.fetchPut(start, true)) |_| return false;
     var index = start;
     const end = self.getCloseIndex(index) orelse index;
     while (index < end) {
         index += 1;
-        const child_node = try self.createNode(self.tokens_list.items[index]);
+        const child_node = try self.createNode(
+            allocator,
+            self.tokens_list.items[index],
+        );
         switch (child_node.token.element.type) {
             .link_title => self.parseLink(child_node, index, .link),
             .image_title => self.parseLink(child_node, index, .image),
             .block, .code => self.parseBlock(child_node, index),
-            .unordered_list_item => try self.parseList(node, child_node, index, .unordered),
-            .ordered_list_item => try self.parseList(node, child_node, index, .ordered),
-            .text => try self.parseText(child_node),
+            .unordered_list_item => try self.parseList(
+                allocator,
+                node,
+                child_node,
+                index,
+                .unordered,
+            ),
+            .ordered_list_item => try self.parseList(
+                allocator,
+                node,
+                child_node,
+                index,
+                .ordered,
+            ),
+            .text => try self.parseText(allocator, child_node),
             else => {},
         }
         self.nullifyToken(end);
         if (index >= self.tokens_list.items.len - 1) break;
-        if (try self.parseChildNodes(index, child_node)) {
-            if (child_node.token.element.type != .none) try node.children.append(child_node);
+        if (try self.parseChildNodes(allocator, index, child_node)) {
+            if (child_node.token.element.type != .none)
+                try node.children.append(allocator, child_node);
         }
     }
     return true;
@@ -267,7 +287,7 @@ fn getCloseIndex(self: Ast, start: usize) ?usize {
 // Convert text into a paragraph if it proceeds a linebreak or the root node, otherwise add plain
 // text (text is the generic token for anything that does not match another token type,
 // e.g. `# Foo` is comprised of a `.h1` and a `.text` token).
-fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token, cleared: bool) !void {
+fn maybeTokenizeText(self: *Ast, allocator: Allocator, prev_token: tokens.Token, token: tokens.Token, cleared: bool) !void {
     if (prev_token.end >= token.start) return;
 
     switch (prev_token.element.type) {
@@ -278,7 +298,7 @@ fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token, 
     const cleared_token = cleared and token.element.clear;
 
     if ((prev_token.element.type == .linebreak or prev_token.element.type == .root) and !cleared_token) {
-        try self.tokens_list.append(.{
+        try self.tokens_list.append(allocator, .{
             .element = tokens.Paragraph,
             .start = token.start,
             .end = token.end,
@@ -297,26 +317,26 @@ fn maybeTokenizeText(self: *Ast, prev_token: tokens.Token, token: tokens.Token, 
         // The whitespace before each item will not be injected as a text token.
         for (self.input[prev_token.end + 1 .. token.start]) |char| {
             if (!std.ascii.isWhitespace(char)) {
-                try self.appendText(prev_token.end, token.start);
+                try self.appendText(allocator, prev_token.end, token.start);
                 break;
             }
         }
     } else {
-        try self.appendText(prev_token.end, token.start);
+        try self.appendText(allocator, prev_token.end, token.start);
     }
 }
 
 // Appande a paragraph token at the end of the tokens array.
-fn appendParagraph(self: *Ast, index: usize) !void {
-    try self.tokens_list.append(.{
+fn appendParagraph(self: *Ast, allocator: Allocator, index: usize) !void {
+    try self.tokens_list.append(allocator, .{
         .element = tokens.Paragraph,
         .start = index,
         .end = index,
     });
 }
 // Append a text token to the end of the tokens array.
-fn appendText(self: *Ast, start: usize, end: usize) !void {
-    try self.tokens_list.append(.{
+fn appendText(self: *Ast, allocator: Allocator, start: usize, end: usize) !void {
+    try self.tokens_list.append(allocator, .{
         .element = tokens.Text,
         .start = start,
         .end = end,
@@ -324,14 +344,14 @@ fn appendText(self: *Ast, start: usize, end: usize) !void {
 }
 
 // Insert a text token at the given index.
-fn insertText(self: *Ast, index: usize, start: usize, end: usize) !void {
-    try self.tokens_list.insert(index, .{
+fn insertText(self: *Ast, allocator: Allocator, index: usize, start: usize, end: usize) !void {
+    try self.tokens_list.insert(allocator, index, .{
         .element = tokens.Paragraph,
         .start = start,
         .end = end,
     });
 
-    try self.tokens_list.insert(index + 1, .{
+    try self.tokens_list.insert(allocator, index + 1, .{
         .element = tokens.Text,
         .start = start,
         .end = end,
@@ -340,6 +360,7 @@ fn insertText(self: *Ast, index: usize, start: usize, end: usize) !void {
 
 fn parseText(
     self: *Ast,
+    allocator: Allocator,
     node: *Node,
 ) !void {
     const input = self.input[node.token.start..node.token.end];
@@ -351,29 +372,29 @@ fn parseText(
             if (std.mem.startsWith(u8, input[cursor..], element.syntax)) {
                 const offset = cursor + element.syntax.len;
                 if (std.mem.indexOf(u8, input[offset..], element.syntax)) |end_index| {
-                    const pre_text_node = try self.createNode(.{
+                    const pre_text_node = try self.createNode(allocator, .{
                         .element = tokens.Text,
                         .start = node.token.start + text_start,
                         .end = node.token.start + cursor,
                     });
 
-                    try node.children.append(pre_text_node);
+                    try node.children.append(allocator, pre_text_node);
 
-                    const child_node = try self.createNode(.{
+                    const child_node = try self.createNode(allocator, .{
                         .element = element,
                         .start = node.token.start + cursor,
                         .end = node.token.start + offset + end_index + element.syntax.len,
                     });
 
-                    try node.children.append(child_node);
+                    try node.children.append(allocator, child_node);
 
-                    const text_node = try self.createNode(.{
+                    const text_node = try self.createNode(allocator, .{
                         .element = tokens.Text,
                         .start = child_node.token.start + element.syntax.len,
                         .end = child_node.token.end - element.syntax.len,
                     });
 
-                    try child_node.children.append(text_node);
+                    try child_node.children.append(allocator, text_node);
                     cursor = offset + end_index + element.syntax.len;
                     text_start = cursor;
                     continue;
@@ -385,12 +406,12 @@ fn parseText(
     if (node.children.items.len > 0) {
         const last_child = node.children.items[node.children.items.len - 1];
         if (last_child.token.end < node.token.end) {
-            const remainder_node = try self.createNode(.{
+            const remainder_node = try self.createNode(allocator, .{
                 .element = tokens.Text,
                 .start = last_child.token.end,
                 .end = node.token.end,
             });
-            try node.children.append(remainder_node);
+            try node.children.append(allocator, remainder_node);
         }
         node.token = .{
             .element = tokens.Text,
@@ -455,6 +476,7 @@ fn parseBlock(self: *Ast, node: *Node, index: usize) void {
 /// node as its only child.
 fn parseList(
     self: *Ast,
+    allocator: Allocator,
     parent_node: *Node,
     node: *Node,
     index: usize,
@@ -466,14 +488,14 @@ fn parseList(
         const list_item_close_index = self.getCloseIndex(token_index) orelse break;
         const list_item_token = self.tokens_list.items[token_index];
 
-        const list_item_node = try self.createNode(.{
+        const list_item_node = try self.createNode(allocator, .{
             .element = .{ .type = .list_item },
             .start = list_item_token.start,
             .end = list_item_token.end,
         });
-        try node.children.append(list_item_node);
+        try node.children.append(allocator, list_item_node);
 
-        _ = try self.parseChildNodes(token_index, list_item_node);
+        _ = try self.parseChildNodes(allocator, token_index, list_item_node);
 
         token_index = list_item_close_index + 1;
     }
@@ -490,7 +512,7 @@ fn parseList(
             .end = self.tokens_list.items[token_index].end,
         };
 
-        try parent_node.children.append(node);
+        try parent_node.children.append(allocator, node);
 
         for (index + 1..token_index) |nullify_index| self.nullifyToken(nullify_index);
     } else {
@@ -523,11 +545,12 @@ fn nullifyToken(self: *Ast, index: usize) void {
 }
 
 // Create a new node on the heap.
-fn createNode(self: Ast, token: tokens.Token) !*Node {
-    const node = try self.allocator.create(Node);
+fn createNode(self: *Ast, allocator: Allocator, token: tokens.Token) !*Node {
+    _ = self;
+    const node = try allocator.create(Node);
     node.* = .{
         .token = token,
-        .children = std.ArrayList(*Node).init(self.allocator),
+        .children = try std.ArrayList(*Node).initCapacity(allocator, 1),
     };
     return node;
 }
@@ -549,10 +572,10 @@ fn debugTree(node: *Node, level: usize) void {
 }
 
 // Output the type and content of a token
-fn debugToken(self: Ast, token: tokens.Token) void {
-    var buf = std.ArrayList(u8).init(self.allocator);
-    defer buf.deinit();
-    var writer = buf.writer().adaptToNewApi().new_interface;
+fn debugToken(self: Ast, allocator: Allocator, token: tokens.Token) void {
+    var buf = std.ArrayList(u8).initCapacity(allocator, 1) catch @panic("asdf");
+    defer buf.deinit(allocator);
+    var writer = buf.writer(allocator).adaptToNewApi(&.{}).new_interface;
     writer.writeByte('"') catch @panic("OOM");
     std.zig.stringEscape(self.input[token.start..token.end], &writer) catch @panic("OOM");
     writer.writeByte('"') catch @panic("OOM");

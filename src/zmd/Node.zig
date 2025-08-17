@@ -31,8 +31,8 @@ pub fn toHtml(
         inline else => |element_type| getFormatterComptime(fragments, @tagName(element_type)),
     };
 
-    var buf = std.ArrayList(u8).init(allocator);
-    const buf_writer = buf.writer();
+    var buf: std.ArrayList(u8) = try .initCapacity(allocator, 1);
+    const buf_writer = buf.writer(allocator);
 
     switch (self.token.element.type) {
         .text => {
