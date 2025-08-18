@@ -32,18 +32,26 @@ pub fn toHtml(
     };
 
     var buf: std.ArrayList(u8) = try .initCapacity(allocator, 1);
+    defer buf.deinit(allocator);
     const buf_writer = buf.writer(allocator);
 
     switch (self.token.element.type) {
         .text => {
             if (self.children.items.len == 0) {
-                try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
+                const escaped = try html.escape(
+                    allocator,
+                    input[self.token.start..self.token.end],
+                );
+                defer allocator.free(escaped);
+                try buf_writer.writeAll(escaped);
             } else {
                 try buf_writer.writeAll(input[self.token.start..self.token.end]);
             }
         },
         .code, .block => {
-            try buf_writer.writeAll(try html.escape(allocator, self.content));
+            const escaped = try html.escape(allocator, self.content);
+            defer allocator.free(escaped);
+            try buf_writer.writeAll(escaped);
         },
         else => {},
     }
@@ -59,7 +67,11 @@ pub fn toHtml(
 
     if (formatter) |capture| {
         switch (capture) {
-            .function => |function| try writer.writeAll(try function(allocator, self.*)),
+            .function => |function| {
+                const html_string = try function(allocator, self.*);
+                defer allocator.free(html_string);
+                try writer.writeAll(html_string);
+            },
             .array => |array| {
                 try writer.writeAll(array[0]);
                 try writer.writeAll(self.content);
