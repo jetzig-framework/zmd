@@ -7,6 +7,7 @@ const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
 const html = @import("html.zig");
 const Zmd = @This();
+const Handlers = @import("Handlers.zig");
 pub const Fragments = html.Fragments;
 
 /// Parse a Markdown string into html. Caller owns returned memory
@@ -21,7 +22,7 @@ pub const Fragments = html.Fragments;
 pub fn parse(
     allocator: Allocator,
     input: []const u8,
-    fragments: type,
+    handlers: Handlers,
 ) ![]const u8 {
     // TODO: plumb in fragments to allow users to provide their own html
     // fragments.
