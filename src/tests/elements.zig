@@ -1,7 +1,7 @@
 const std = @import("std");
 const allocator = std.testing.allocator;
 const Zmd = @import("../zmd/Zmd.zig");
-const fragments = @import("../zmd/html.zig").DefaultFragments;
+const fragments = @import("../zmd/html.zig").Fragments;
 const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "h1" {
@@ -20,7 +20,7 @@ test "h1" {
         \\# Header
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -41,7 +41,7 @@ test "h2" {
         \\## Header
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -62,7 +62,7 @@ test "h3" {
         \\### Header
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -82,7 +82,7 @@ test "h4" {
         \\#### Header
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -103,7 +103,7 @@ test "h5" {
         \\##### Header
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -124,7 +124,7 @@ test "h6" {
         \\###### Header
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -146,7 +146,7 @@ test "bold (dangling)" {
         \\**bold**
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -168,7 +168,7 @@ test "bold (embedded)" {
         \\some **bold** text
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -190,7 +190,7 @@ test "italic (dangling)" {
         \\_italic_
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -212,7 +212,7 @@ test "italic (embedded)" {
         \\some _italic_ text
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -234,7 +234,7 @@ test "code (dangling)" {
         \\`code`
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -256,7 +256,7 @@ test "code (embedded)" {
         \\some `code` text
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -282,7 +282,7 @@ test "block" {
         \\```
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -304,7 +304,7 @@ test "image" {
         \\![image title](https://example.com/image.png)
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -326,7 +326,7 @@ test "link" {
         \\[link title](https://example.com/)
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -351,7 +351,7 @@ test "paragraph" {
         \\a paragraph
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -373,7 +373,7 @@ test "unordered list (+)" {
         \\+ list item 3
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -395,7 +395,7 @@ test "unordered list (-)" {
         \\- list item 3
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -417,7 +417,7 @@ test "unordered list (*)" {
         \\* list item 3
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -439,7 +439,7 @@ test "ordered list (1., 1., 1.)" {
         \\1. list item 3
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -461,7 +461,7 @@ test "list with embedded elements" {
         \\* list item with **bold** and _italic_ text
     ;
 
-    const parsed = try Zmd.parse(allocator, md, null);
+    const parsed = try Zmd.parse(allocator, md, Zmd.Fragments);
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }

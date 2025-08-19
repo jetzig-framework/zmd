@@ -7,16 +7,24 @@ const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
 const html = @import("html.zig");
 const Zmd = @This();
+pub const Fragments = html.Fragments;
 
 /// Parse a Markdown string into html. Caller owns returned memory
+/// ```
+/// const html = try Zmd.parse(alloc, markdown, .{
+///     .h1 = someFunc,
+///     .h2 = otherFunc,
+/// });
+/// defer alloc.free(html);
+/// ```
+/// Handler funcs should be `fn(Allocator, *Zmd.Node) anytype![]const u8`
 pub fn parse(
     allocator: Allocator,
     input: []const u8,
-    fragments: anytype,
+    fragments: type,
 ) ![]const u8 {
     // TODO: plumb in fragments to allow users to provide their own html
     // fragments.
-    _ = fragments;
     var arena: ArenaAllocator = .init(allocator);
     defer arena.deinit();
     const alloc = arena.allocator();
@@ -39,9 +47,9 @@ pub fn parse(
     try nodes.items[0].toHtml(
         alloc,
         input,
-        html.DefaultFragments,
         base_writer,
         0,
+        fragments,
     );
 
     return allocator.dupe(u8, buf.items);

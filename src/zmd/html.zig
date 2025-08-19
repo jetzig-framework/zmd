@@ -6,7 +6,7 @@ const Node = @import("Node.zig");
 /// Default fragments. Pass this to `Zmd.toHtml` or provide your own.
 /// Formatters can be functions receiving an allocator, the current node, and the rendered
 /// content, or a 2-element tuple containing the open and close for each node.
-pub const DefaultFragments = struct {
+pub const Fragments = struct {
     pub fn root(allocator: std.mem.Allocator, node: Node) ![]const u8 {
         return try std.fmt.allocPrint(allocator,
             \\<!DOCTYPE html>

@@ -1,8 +1,8 @@
 const std = @import("std");
-
+const Allocator = std.mem.Allocator;
+const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
 const html = @import("html.zig");
-
 const Node = @This();
 
 token: tokens.Token,
@@ -16,12 +16,14 @@ index: usize = 0,
 /// Recursively translate a node into HTML.
 pub fn toHtml(
     self: *Node,
-    allocator: std.mem.Allocator,
+    allocator: Allocator,
     input: []const u8,
-    fragments: type,
     writer: anytype,
     level: usize,
+    fragments: type,
 ) !void {
+
+    // do not touch anything under this line, if custom formatter does not exist then logic should flow through here.
     const formatter = switch (self.token.element.type) {
         .linebreak, .none, .eof => null,
         .paragraph => if (level == 1)
@@ -31,7 +33,7 @@ pub fn toHtml(
         inline else => |element_type| getFormatterComptime(fragments, @tagName(element_type)),
     };
 
-    var buf: std.ArrayList(u8) = try .initCapacity(allocator, 1);
+    var buf: ArrayList(u8) = try .initCapacity(allocator, 1);
     defer buf.deinit(allocator);
     const buf_writer = buf.writer(allocator);
 
@@ -57,7 +59,7 @@ pub fn toHtml(
     }
 
     for (self.children.items) |node| {
-        try node.toHtml(allocator, input, fragments, buf_writer, level + 1);
+        try node.toHtml(allocator, input, buf_writer, level + 1, fragments);
     }
 
     self.content = if (self.token.element.trim)
@@ -85,10 +87,10 @@ pub fn toHtml(
 pub fn getFormatterComptime(fragments: type, comptime element_type: []const u8) Formatter {
     const formatter = if (@hasDecl(fragments, element_type))
         @field(fragments, element_type)
-    else if (@hasDecl(html.DefaultFragments, element_type))
-        @field(html.DefaultFragments, element_type)
+    else if (@hasDecl(html.Fragments, element_type))
+        @field(html.Fragments, element_type)
     else
-        html.DefaultFragments.default;
+        html.Fragments.default;
 
     return switch (@typeInfo(@TypeOf(formatter))) {
         .@"fn" => Formatter{ .function = &formatter },
@@ -105,13 +107,13 @@ pub fn getFormatter(fragments: type, element_type: []const u8) Formatter {
         }
     }
 
-    inline for (@typeInfo(html.DefaultFragments).@"struct".decls) |decl| {
+    inline for (@typeInfo(html.Fragments).@"struct".decls) |decl| {
         if (std.mem.eql(u8, decl.name, element_type)) {
-            return makeFormatter(html.DefaultFragments, decl.name);
+            return makeFormatter(html.Fragments, decl.name);
         }
     }
 
-    return makeFormatter(html.DefaultFragments, "default");
+    return makeFormatter(html.Fragments, "default");
 }
 
 fn makeFormatter(fragments: type, comptime decl: []const u8) Formatter {
@@ -128,5 +130,5 @@ const Formatter = union(enum) {
     array: FormatArray,
 };
 
-const FormatFunction = *const fn (std.mem.Allocator, Node) anyerror![]const u8;
+const FormatFunction = *const fn (Allocator, Node) anyerror![]const u8;
 const FormatArray = [2][]const u8;

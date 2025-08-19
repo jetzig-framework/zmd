@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const Zmd = @import("zmd/Zmd.zig");
-const fragments = @import("zmd/html.zig").DefaultFragments;
+const fragments = @import("zmd/html.zig").Fragments;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
