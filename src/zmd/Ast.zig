@@ -3,9 +3,10 @@ const Node = @import("Node.zig");
 const tokens = @import("tokens.zig");
 const Allocator = std.mem.Allocator;
 const Ast = @This();
+const ArrayList = std.ArrayList;
 
 input: []const u8,
-tokens_list: std.ArrayList(tokens.Token),
+tokens_list: ArrayList(tokens.Token),
 state: enum { initial, tokenized, parsed } = .initial,
 current_node: *Node = undefined,
 /// Used to optimize tokenization: the last `isCleared()` result
@@ -16,7 +17,7 @@ last_cleared: struct { index: usize, cleared: bool } = .{
 visited: std.AutoHashMap(usize, bool) = undefined,
 elements_map: std.AutoHashMap(tokens.ElementType, tokens.Element) = undefined,
 debug: bool = false,
-node_registry: std.ArrayList(*Node) = undefined,
+node_registry: ArrayList(*Node) = undefined,
 
 /// Initialize a new Ast.
 pub fn init(allocator: Allocator, input: []const u8) !Ast {

@@ -4,6 +4,7 @@ const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
 const html = @import("html.zig");
 const Node = @This();
+const Handlers = @import("Handlers.zig");
 
 token: tokens.Token,
 content: []const u8 = "",
@@ -20,17 +21,15 @@ pub fn toHtml(
     input: []const u8,
     writer: anytype,
     level: usize,
-    fragments: type,
+    handlers: Handlers,
 ) !void {
-
-    // do not touch anything under this line, if custom formatter does not exist then logic should flow through here.
     const formatter = switch (self.token.element.type) {
         .linebreak, .none, .eof => null,
         .paragraph => if (level == 1)
-            getFormatterComptime(fragments, "paragraph")
+            getFormatterComptime(handlers, "paragraph")
         else
-            getFormatterComptime(fragments, "text"),
-        inline else => |element_type| getFormatterComptime(fragments, @tagName(element_type)),
+            getFormatterComptime(handlers, "text"),
+        inline else => |element_type| getFormatterComptime(handlers, @tagName(element_type)),
     };
 
     var buf: ArrayList(u8) = try .initCapacity(allocator, 1);
@@ -59,7 +58,13 @@ pub fn toHtml(
     }
 
     for (self.children.items) |node| {
-        try node.toHtml(allocator, input, buf_writer, level + 1, fragments);
+        try node.toHtml(
+            allocator,
+            input,
+            buf_writer,
+            level + 1,
+            handlers,
+        );
     }
 
     self.content = if (self.token.element.trim)
@@ -84,44 +89,27 @@ pub fn toHtml(
 }
 
 /// Try to find a formatter from the provided fragments struct, fall back to defaults.
-pub fn getFormatterComptime(fragments: type, comptime element_type: []const u8) Formatter {
-    const formatter = if (@hasDecl(fragments, element_type))
-        @field(fragments, element_type)
-    else if (@hasDecl(html.Fragments, element_type))
-        @field(html.Fragments, element_type)
+pub fn getFormatterComptime(handlers: Handlers, comptime element_type: []const u8) Handlers.Handler {
+    return if (@hasField(Handlers, element_type))
+        @field(handlers, element_type)
     else
-        html.Fragments.default;
-
-    return switch (@typeInfo(@TypeOf(formatter))) {
-        .@"fn" => Formatter{ .function = &formatter },
-        .@"struct" => Formatter{ .array = formatter },
-        else => unreachable,
-    };
+        handlers.default;
 }
 
 /// Same as `getFormatterComptime` but does not require a comptime argument.
-pub fn getFormatter(fragments: type, element_type: []const u8) Formatter {
-    inline for (@typeInfo(fragments).@"struct".decls) |decl| {
-        if (std.mem.eql(u8, decl.name, element_type)) {
-            return makeFormatter(fragments, decl.name);
-        }
-    }
-
-    inline for (@typeInfo(html.Fragments).@"struct".decls) |decl| {
-        if (std.mem.eql(u8, decl.name, element_type)) {
-            return makeFormatter(html.Fragments, decl.name);
-        }
-    }
-
-    return makeFormatter(html.Fragments, "default");
+pub fn getFormatter(handlers: Handlers, element_type: []const u8) Formatter {
+    inline for (@typeInfo(handlers).@"struct".decls) |decl|
+        if (std.mem.eql(u8, decl.name, element_type))
+            return makeFormatter(handlers, decl.name);
+    return makeFormatter(handlers, "default");
 }
 
-fn makeFormatter(fragments: type, comptime decl: []const u8) Formatter {
-    const formatter = @field(fragments, decl);
+fn makeFormatter(handlers: Handlers, comptime decl: []const u8) Formatter {
+    const formatter = @field(handlers, decl);
     return switch (@typeInfo(@TypeOf(formatter))) {
         .@"fn" => Formatter{ .function = &formatter },
         .@"struct" => Formatter{ .array = formatter },
-        else => unreachable,
+        else => @panic("check here:Node.zig"),
     };
 }
 

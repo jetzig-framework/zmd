@@ -4,11 +4,10 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 pub const Node = @import("Node.zig");
 const Ast = @import("Ast.zig");
 const ArrayList = std.ArrayList;
-const tokens = @import("tokens.zig");
-const html = @import("html.zig");
-const Zmd = @This();
+//const tokens = @import("tokens.zig");
+//const html = @import("html.zig");
+//const Zmd = @This();
 const Handlers = @import("Handlers.zig");
-pub const Fragments = html.Fragments;
 
 /// Parse a Markdown string into html. Caller owns returned memory
 /// ```
@@ -50,7 +49,7 @@ pub fn parse(
         input,
         base_writer,
         0,
-        fragments,
+        handlers,
     );
 
     return allocator.dupe(u8, buf.items);

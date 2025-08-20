@@ -2,7 +2,6 @@ const std = @import("std");
 const allocator = std.testing.allocator;
 const Zmd = @import("../zmd/Zmd.zig");
 const Node = @import("../zmd/Node.zig");
-const fragments = @import("../zmd/html.zig").Fragments;
 const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "parse markdown and translate to HTML" {
@@ -53,7 +52,7 @@ test "parse markdown and translate to HTML" {
         \\
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -74,7 +73,7 @@ test "parse content without trailing linebreak before eof" {
         \\# Header
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -99,7 +98,7 @@ test "parse paragraph leading with a token" {
         \\**bold** text at the start of a paragraph
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -121,7 +120,7 @@ test "parse indented list" {
         \\  * baz
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -143,7 +142,7 @@ test "parse underscores in code element" {
         \\* `quux_corge`
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -165,7 +164,7 @@ test "parse parentheses in paragraph" {
         \\some text (with parentheses) in a paragraph
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -187,7 +186,7 @@ test "parse underscore in link" {
         \\a _link_ to [here_doc](https://en.wikipedia.org/wiki/Here_document) with _italics_ and **bold**
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -209,14 +208,14 @@ test "parse underscores in block" {
         \\```
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
 
 test "parse repeated whitespace" {
     // Used to be really slow
-    const parsed = try Zmd.parse(allocator, " " ** 40_000, struct {});
+    const parsed = try Zmd.parse(allocator, " " ** 40_000, .{});
     allocator.free(parsed);
 }
 
@@ -237,7 +236,7 @@ test "empty struct defaults to Zmd.Fragments" {
         \\  * baz
     ;
 
-    const parsed = try Zmd.parse(allocator, md, struct {});
+    const parsed = try Zmd.parse(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }

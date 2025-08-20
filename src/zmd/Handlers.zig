@@ -3,26 +3,26 @@ const Node = @import("Node.zig");
 const Handlers = @This();
 const Allocator = std.mem.Allocator;
 const allocPrint = std.fmt.allocPrint;
-const FragmentHandler = fn (Allocator, Node) Allocator.Error![]const u8;
+pub const Handler = fn (Allocator, Node) Allocator.Error![]const u8;
 
-root: FragmentHandler = Default.root,
-block: FragmentHandler = Default.block,
-link: FragmentHandler = Default.link,
-image: FragmentHandler = Default.image,
-h1: FragmentHandler = Default.header,
-h2: FragmentHandler = Default.header,
-h3: FragmentHandler = Default.header,
-h4: FragmentHandler = Default.header,
-h5: FragmentHandler = Default.header,
-h6: FragmentHandler = Default.header,
-bold: FragmentHandler = Default.bold,
-italic: FragmentHandler = Default.italic,
-unordered_list: FragmentHandler = Default.unordered_list,
-ordered_list: FragmentHandler = Default.ordered_list,
-list_item: FragmentHandler = Default.list_item,
-code: FragmentHandler = Default.code,
-paragraph: FragmentHandler = Default.paragraph,
-default: FragmentHandler = Default.default,
+root: Handler = Default.root,
+block: Handler = Default.block,
+link: Handler = Default.link,
+image: Handler = Default.image,
+h1: Handler = Default.h1,
+h2: Handler = Default.h2,
+h3: Handler = Default.h3,
+h4: Handler = Default.h4,
+h5: Handler = Default.h5,
+h6: Handler = Default.h6,
+bold: Handler = Default.bold,
+italic: Handler = Default.italic,
+unordered_list: Handler = Default.unordered_list,
+ordered_list: Handler = Default.ordered_list,
+list_item: Handler = Default.list_item,
+code: Handler = Default.code,
+paragraph: Handler = Default.paragraph,
+default: Handler = Default.default,
 
 const Default = struct {
     pub fn root(allocator: Allocator, node: Node) ![]const u8 {
@@ -70,9 +70,28 @@ const Default = struct {
         );
     }
 
-    pub fn header(allocator: Allocator, node: Node) ![]const u8 {
-        const tag = @tagName(node.token.element.type);
-        return wrap(allocator, node.content, tag);
+    pub fn h1(allocator: Allocator, node: Node) ![]const u8 {
+        return allocPrint(allocator, "<h1>{s}</h1>\n", .{node.content});
+    }
+
+    pub fn h2(allocator: Allocator, node: Node) ![]const u8 {
+        return allocPrint(allocator, "<h2>{s}</h2>\n", .{node.content});
+    }
+
+    pub fn h3(allocator: Allocator, node: Node) ![]const u8 {
+        return allocPrint(allocator, "<h3>{s}</h3>\n", .{node.content});
+    }
+
+    pub fn h4(allocator: Allocator, node: Node) ![]const u8 {
+        return allocPrint(allocator, "<h4>{s}</h4>\n", .{node.content});
+    }
+
+    pub fn h5(allocator: Allocator, node: Node) ![]const u8 {
+        return allocPrint(allocator, "<h5>{s}</h5>\n", .{node.content});
+    }
+
+    pub fn h6(allocator: Allocator, node: Node) ![]const u8 {
+        return allocPrint(allocator, "<h6>{s}</h6>\n", .{node.content});
     }
 
     pub fn bold(allocator: Allocator, node: Node) ![]const u8 {
@@ -120,7 +139,7 @@ const Default = struct {
 fn wrap(allocator: Allocator, content: []const u8, string: []const u8) ![]const u8 {
     return allocPrint(
         allocator,
-        "<s>{s}</s>",
+        "<{s}>{s}</{s}>",
         .{ string, content, string },
     );
 }
