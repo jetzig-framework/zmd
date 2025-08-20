@@ -7,6 +7,9 @@ test "h1" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h1>Header</h1>
         \\</main>
@@ -28,6 +31,9 @@ test "h2" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h2>Header</h2>
         \\</main>
@@ -49,6 +55,9 @@ test "h3" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h3>Header</h3>
         \\</main>
@@ -70,6 +79,9 @@ test "h4" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h4>Header</h4>
         \\</main>
@@ -90,6 +102,9 @@ test "h5" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h5>Header</h5>
         \\</main>
@@ -111,6 +126,9 @@ test "h6" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h6>Header</h6>
         \\</main>
@@ -132,6 +150,9 @@ test "bold (dangling)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p><b>bold</b></p>
@@ -154,6 +175,9 @@ test "bold (embedded)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p>some <b>bold</b> text</p>
@@ -176,6 +200,9 @@ test "italic (dangling)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p><i>italic</i></p>
@@ -198,6 +225,9 @@ test "italic (embedded)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p>some <i>italic</i> text</p>
@@ -220,6 +250,9 @@ test "code (dangling)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p><span style="font-family: Monospace">code</span></p>
@@ -242,6 +275,9 @@ test "code (embedded)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p>some <span style="font-family: Monospace">code</span> text</p>
@@ -264,6 +300,9 @@ test "block" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><pre class="language-zig" style="font-family: Monospace;"><code>if (1 &lt; 10) {
         \\   return "1 is less than 10";
@@ -290,6 +329,9 @@ test "image" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p><img src="https://example.com/image.png" title="image title" /></p>
@@ -312,6 +354,9 @@ test "link" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p><a href="https://example.com/">link title</a></p>
@@ -334,6 +379,9 @@ test "paragraph" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h1>a title</h1>
         \\
@@ -359,6 +407,9 @@ test "unordered list (+)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
         \\</body>
@@ -381,6 +432,9 @@ test "unordered list (-)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
         \\</body>
@@ -403,6 +457,9 @@ test "unordered list (*)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
         \\</body>
@@ -425,6 +482,9 @@ test "ordered list (1., 1., 1.)" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><ol><li>list item 1</li><li>list item 2</li><li>list item 3</li></ol></main>
         \\</body>
@@ -447,6 +507,9 @@ test "list with embedded elements" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><ul><li>list item with <a href="https://www.example.com/">my link</a></li><li>list item with <img src="https://www.example.com/image.png" title="my image" /></li><li>list item with <b>bold</b> and <i>italic</i> text</li></ul></main>
         \\</body>

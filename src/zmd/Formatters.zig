@@ -29,6 +29,9 @@ const Default = struct {
         const html =
             \\<!DOCTYPE html>
             \\<html>
+            \\<head>
+            \\  <meta charset="utf8">
+            \\</head>
             \\<body>
             \\<main>{s}</main>
             \\</body>
