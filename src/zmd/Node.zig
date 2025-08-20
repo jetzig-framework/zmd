@@ -1,9 +1,9 @@
 const std = @import("std");
-
+const Allocator = std.mem.Allocator;
+const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
-const html = @import("html.zig");
-
 const Node = @This();
+const Formatters = @import("Formatters.zig");
 
 token: tokens.Token,
 content: []const u8 = "",
@@ -16,40 +16,54 @@ index: usize = 0,
 /// Recursively translate a node into HTML.
 pub fn toHtml(
     self: *Node,
-    allocator: std.mem.Allocator,
+    allocator: Allocator,
     input: []const u8,
-    fragments: type,
     writer: anytype,
     level: usize,
+    formatters: Formatters,
 ) !void {
-    const formatter = switch (self.token.element.type) {
+    const formatter: ?*const Formatters.Handler = switch (self.token.element.type) {
         .linebreak, .none, .eof => null,
         .paragraph => if (level == 1)
-            getFormatterComptime(fragments, "paragraph")
+            &getHandlerComptime(formatters, "paragraph")
         else
-            getFormatterComptime(fragments, "text"),
-        inline else => |element_type| getFormatterComptime(fragments, @tagName(element_type)),
+            &getHandlerComptime(formatters, "text"),
+        inline else => |element_type| &getHandlerComptime(formatters, @tagName(element_type)),
     };
 
-    var buf = std.ArrayList(u8).init(allocator);
-    const buf_writer = buf.writer();
+    var buf: ArrayList(u8) = try .initCapacity(allocator, 1);
+    defer buf.deinit(allocator);
+    const buf_writer = buf.writer(allocator);
 
     switch (self.token.element.type) {
         .text => {
             if (self.children.items.len == 0) {
-                try buf_writer.writeAll(try html.escape(allocator, input[self.token.start..self.token.end]));
+                const escaped = try escape(
+                    allocator,
+                    input[self.token.start..self.token.end],
+                );
+                defer allocator.free(escaped);
+                try buf_writer.writeAll(escaped);
             } else {
                 try buf_writer.writeAll(input[self.token.start..self.token.end]);
             }
         },
         .code, .block => {
-            try buf_writer.writeAll(try html.escape(allocator, self.content));
+            const escaped = try escape(allocator, self.content);
+            defer allocator.free(escaped);
+            try buf_writer.writeAll(escaped);
         },
         else => {},
     }
 
     for (self.children.items) |node| {
-        try node.toHtml(allocator, input, fragments, buf_writer, level + 1);
+        try node.toHtml(
+            allocator,
+            input,
+            buf_writer,
+            level + 1,
+            formatters,
+        );
     }
 
     self.content = if (self.token.element.trim)
@@ -57,64 +71,33 @@ pub fn toHtml(
     else
         buf.items;
 
-    if (formatter) |capture| {
-        switch (capture) {
-            .function => |function| try writer.writeAll(try function(allocator, self.*)),
-            .array => |array| {
-                try writer.writeAll(array[0]);
-                try writer.writeAll(self.content);
-                try writer.writeAll(array[1]);
-            },
-        }
+    if (formatter) |handler_func| {
+        const html_string = try handler_func(allocator, self.*);
+        defer allocator.free(html_string);
+        try writer.writeAll(html_string);
     }
 }
 
-/// Try to find a formatter from the provided fragments struct, fall back to defaults.
-pub fn getFormatterComptime(fragments: type, comptime element_type: []const u8) Formatter {
-    const formatter = if (@hasDecl(fragments, element_type))
-        @field(fragments, element_type)
-    else if (@hasDecl(html.DefaultFragments, element_type))
-        @field(html.DefaultFragments, element_type)
+pub fn getHandlerComptime(
+    formatters: Formatters,
+    comptime element_type: []const u8,
+) Formatters.Handler {
+    return if (@hasField(Formatters, element_type))
+        @field(formatters, element_type)
     else
-        html.DefaultFragments.default;
+        formatters.default;
+}
 
-    return switch (@typeInfo(@TypeOf(formatter))) {
-        .@"fn" => Formatter{ .function = &formatter },
-        .@"struct" => Formatter{ .array = formatter },
-        else => unreachable,
+fn escape(allocator: Allocator, input: []const u8) ![]const u8 {
+    const replacements = .{
+        .{ "&", "&amp;" },
+        .{ "<", "&lt;" },
+        .{ ">", "&gt;" },
     };
-}
 
-/// Same as `getFormatterComptime` but does not require a comptime argument.
-pub fn getFormatter(fragments: type, element_type: []const u8) Formatter {
-    inline for (@typeInfo(fragments).@"struct".decls) |decl| {
-        if (std.mem.eql(u8, decl.name, element_type)) {
-            return makeFormatter(fragments, decl.name);
-        }
+    var output = input;
+    inline for (replacements) |replacement| {
+        output = try std.mem.replaceOwned(u8, allocator, output, replacement[0], replacement[1]);
     }
-
-    inline for (@typeInfo(html.DefaultFragments).@"struct".decls) |decl| {
-        if (std.mem.eql(u8, decl.name, element_type)) {
-            return makeFormatter(html.DefaultFragments, decl.name);
-        }
-    }
-
-    return makeFormatter(html.DefaultFragments, "default");
+    return output;
 }
-
-fn makeFormatter(fragments: type, comptime decl: []const u8) Formatter {
-    const formatter = @field(fragments, decl);
-    return switch (@typeInfo(@TypeOf(formatter))) {
-        .@"fn" => Formatter{ .function = &formatter },
-        .@"struct" => Formatter{ .array = formatter },
-        else => unreachable,
-    };
-}
-
-const Formatter = union(enum) {
-    function: FormatFunction,
-    array: FormatArray,
-};
-
-const FormatFunction = *const fn (std.mem.Allocator, Node) anyerror![]const u8;
-const FormatArray = [2][]const u8;

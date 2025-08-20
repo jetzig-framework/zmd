@@ -1,77 +1,60 @@
 const std = @import("std");
-
+const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const Node = @import("Node.zig");
 const Ast = @import("Ast.zig");
-const tokens = @import("tokens.zig");
-const html = @import("html.zig");
+const ArrayList = std.ArrayList;
+const Formatters = @import("Formatters.zig");
 
-allocator: std.mem.Allocator,
-arena: std.heap.ArenaAllocator,
-nodes: std.ArrayList(*Node),
-state: enum { initial, parsed } = .initial,
-input: []const u8 = undefined,
-
-const Zmd = @This();
-
-/// Initialize a new Zmd Markdown AST.
-pub fn init(allocator: std.mem.Allocator) Zmd {
-    return .{
-        .allocator = allocator,
-        .arena = std.heap.ArenaAllocator.init(allocator),
-        .nodes = std.ArrayList(*Node).init(allocator),
-    };
-}
-
-/// Deinitialize and free allocated memory.
-pub fn deinit(self: *Zmd) void {
-    self.nodes.deinit();
-    self.arena.deinit();
-}
-
-/// Parse a Markdown string into an AST.
-pub fn parse(self: *Zmd, input: []const u8) !void {
-    if (self.state != .initial) unreachable;
-
-    const allocator = self.arena.allocator();
-
-    const normalized = normalizeInput(allocator, input);
-
-    var parser = Ast.init(allocator, normalized);
-    defer parser.deinit();
-
-    try parser.tokenize();
-
-    const root = try parser.parse();
-    try self.nodes.append(root);
-
-    self.input = normalized;
-
-    self.state = .parsed;
-}
-
-/// Translate a parsed Markdown AST to HTML.
-pub fn toHtml(self: *const Zmd, fragments: type) ![]const u8 {
-    if (self.state != .parsed) unreachable;
-
-    var arena = std.heap.ArenaAllocator.init(self.allocator);
+/// Parse a Markdown string into html. Caller owns returned memory
+/// ```
+/// const html = try Zmd.parse(alloc, markdown, .{
+///     .h1 = someFunc,
+///     .h2 = otherFunc,
+/// });
+/// defer alloc.free(html);
+/// ```
+/// Handler funcs should be `fn(Allocator, *zmd.Node) anytype![]const u8`
+pub fn parse(
+    allocator: Allocator,
+    markdown: []const u8,
+    formatters: Formatters,
+) ![]const u8 {
+    // TODO: plumb in fragments to allow users to provide their own html
+    // fragments.
+    var arena: ArenaAllocator = .init(allocator);
     defer arena.deinit();
+    const alloc = arena.allocator();
 
-    const allocator = arena.allocator();
-    var buf = std.ArrayList(u8).init(allocator);
-    const base_writer = buf.writer();
-    var bw = std.io.bufferedWriter(base_writer);
-    const writer = bw.writer();
+    var nodes: ArrayList(*Node) = try .initCapacity(alloc, 0);
+    defer nodes.deinit(alloc);
 
-    try self.nodes.items[0].toHtml(allocator, self.input, fragments, writer, 0);
+    const normalized = normalizeInput(alloc, markdown);
+    var ast: Ast = try .init(alloc, normalized);
 
-    try bw.flush();
+    try ast.tokenize(alloc);
+    const root = try ast.parse(alloc);
+    try nodes.append(alloc, root);
 
-    return try self.allocator.dupe(u8, buf.items);
+    var buf: ArrayList(u8) = try .initCapacity(alloc, 0);
+    defer buf.deinit(alloc);
+
+    // TODO: replace this with new std.Io.Writer
+    const base_writer = buf.writer(alloc);
+    try nodes.items[0].toHtml(
+        alloc,
+        markdown,
+        base_writer,
+        0,
+        formatters,
+    );
+
+    return allocator.dupe(u8, buf.items);
 }
 
 // Normalize text to unix-style linebreaks and ensure ending with a linebreak to simplify
 // Windows compatibility.
-fn normalizeInput(allocator: std.mem.Allocator, input: []const u8) []const u8 {
+fn normalizeInput(allocator: Allocator, input: []const u8) []const u8 {
     const output = std.mem.replaceOwned(u8, allocator, input, "\r\n", "\n") catch @panic("OOM");
     if (std.mem.endsWith(u8, output, "\n")) return output;
 

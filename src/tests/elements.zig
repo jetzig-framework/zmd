@@ -1,20 +1,10 @@
 const std = @import("std");
-
+const allocator = std.testing.allocator;
 const Zmd = @import("../zmd/Zmd.zig");
-const fragments = @import("../zmd/html.zig").DefaultFragments;
+const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "h1" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\# Header
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -23,21 +13,19 @@ test "h1" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\# Header
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "h2" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\## Header
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -46,21 +34,19 @@ test "h2" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\## Header
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "h3" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\### Header
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -69,21 +55,19 @@ test "h3" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\### Header
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "h4" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\#### Header
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -92,21 +76,18 @@ test "h4" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+    const md =
+        \\#### Header
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "h5" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\##### Header
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -115,21 +96,19 @@ test "h5" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\##### Header
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "h6" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\###### Header
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -138,21 +117,19 @@ test "h6" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\###### Header
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "bold (dangling)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\**bold**
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -162,21 +139,19 @@ test "bold (dangling)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\**bold**
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "bold (embedded)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\some **bold** text
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -186,21 +161,19 @@ test "bold (embedded)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\some **bold** text
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "italic (dangling)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\_italic_
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -210,21 +183,19 @@ test "italic (dangling)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\_italic_
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "italic (embedded)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\some _italic_ text
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -234,21 +205,19 @@ test "italic (embedded)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\some _italic_ text
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "code (dangling)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\`code`
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -258,21 +227,19 @@ test "code (dangling)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\`code`
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "code (embedded)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\some `code` text
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -282,25 +249,19 @@ test "code (embedded)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\some `code` text
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "block" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\```zig
-        \\if (1 < 10) {
-        \\   return "1 is less than 10";
-        \\}
-        \\```
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -310,21 +271,23 @@ test "block" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\```zig
+        \\if (1 < 10) {
+        \\   return "1 is less than 10";
+        \\}
+        \\```
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "image" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\![image title](https://example.com/image.png)
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -334,21 +297,19 @@ test "image" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\![image title](https://example.com/image.png)
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "link" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\[link title](https://example.com/)
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -358,23 +319,19 @@ test "link" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\[link title](https://example.com/)
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "paragraph" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\# a title
-        \\
-        \\a paragraph
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -385,71 +342,65 @@ test "paragraph" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\# a title
+        \\
+        \\a paragraph
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "unordered list (+)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    const html =
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\</body>
+        \\</html>
+        \\
+    ;
 
-    try zmd.parse(
+    const md =
         \\+ list item 1
         \\+ list item 2
         \\+ list item 3
-    );
+    ;
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
-        \\<!DOCTYPE html>
-        \\<html>
-        \\<body>
-        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
-        \\</body>
-        \\</html>
-        \\
-    , html);
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "unordered list (-)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
+    const html =
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<body>
+        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\</body>
+        \\</html>
+        \\
+    ;
 
-    try zmd.parse(
+    const md =
         \\- list item 1
         \\- list item 2
         \\- list item 3
-    );
+    ;
 
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
-        \\<!DOCTYPE html>
-        \\<html>
-        \\<body>
-        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
-        \\</body>
-        \\</html>
-        \\
-    , html);
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "unordered list (*)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\* list item 1
-        \\* list item 2
-        \\* list item 3
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -457,23 +408,21 @@ test "unordered list (*)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\* list item 1
+        \\* list item 2
+        \\* list item 3
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "ordered list (1., 1., 1.)" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\1. list item 1
-        \\1. list item 2
-        \\1. list item 3
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -481,23 +430,21 @@ test "ordered list (1., 1., 1.)" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\1. list item 1
+        \\1. list item 2
+        \\1. list item 3
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }
 
 test "list with embedded elements" {
-    var zmd = Zmd.init(std.testing.allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
-        \\* list item with [my link](https://www.example.com/)
-        \\* list item with ![my image](https://www.example.com/image.png)
-        \\* list item with **bold** and _italic_ text
-    );
-
-    const html = try zmd.toHtml(fragments);
-    defer std.testing.allocator.free(html);
-
-    try std.testing.expectEqualStrings(
+    const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
@@ -505,5 +452,15 @@ test "list with embedded elements" {
         \\</body>
         \\</html>
         \\
-    , html);
+    ;
+
+    const md =
+        \\* list item with [my link](https://www.example.com/)
+        \\* list item with ![my image](https://www.example.com/image.png)
+        \\* list item with **bold** and _italic_ text
+    ;
+
+    const parsed = try Zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
 }

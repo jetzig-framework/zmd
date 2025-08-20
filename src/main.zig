@@ -1,16 +1,11 @@
 const std = @import("std");
-
 const Zmd = @import("zmd/Zmd.zig");
-const fragments = @import("zmd/html.zig").DefaultFragments;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    var zmd = Zmd.init(allocator);
-    defer zmd.deinit();
-
-    try zmd.parse(
+    const markdown =
         \\# Header
         \\## Sub-header
         \\### Sub-sub-header
@@ -25,11 +20,11 @@ pub fn main() !void {
         \\and yet more code
         \\```
         \\some more text with a `code` fragment
-    );
+    ;
 
-    const html = try zmd.toHtml(fragments);
-    // defer std.testing.allocator.free(html);
+    const html = try Zmd.parse(allocator, markdown, .{});
+    defer allocator.free(html);
 
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout();
     try stdout.writeAll(html);
 }
