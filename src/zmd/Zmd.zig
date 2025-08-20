@@ -6,22 +6,11 @@ const Ast = @import("Ast.zig");
 const ArrayList = std.ArrayList;
 const Formatters = @import("Formatters.zig");
 
-/// Parse a Markdown string into html. Caller owns returned memory
-/// ```
-/// const html = try Zmd.parse(alloc, markdown, .{
-///     .h1 = someFunc,
-///     .h2 = otherFunc,
-/// });
-/// defer alloc.free(html);
-/// ```
-/// Handler funcs should be `fn(Allocator, *zmd.Node) anytype![]const u8`
 pub fn parse(
     allocator: Allocator,
     markdown: []const u8,
     formatters: Formatters,
 ) ![]const u8 {
-    // TODO: plumb in fragments to allow users to provide their own html
-    // fragments.
     var arena: ArenaAllocator = .init(allocator);
     defer arena.deinit();
     const alloc = arena.allocator();

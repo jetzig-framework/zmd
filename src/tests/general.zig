@@ -8,6 +8,9 @@ test "parse markdown and translate to HTML" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h1>Header</h1>
         \\<h2>Sub-header</h2>
@@ -61,6 +64,9 @@ test "parse content without trailing linebreak before eof" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h1>Header</h1>
         \\</main>
@@ -82,6 +88,9 @@ test "parse paragraph leading with a token" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><h1>Header</h1>
         \\
@@ -107,6 +116,9 @@ test "parse indented list" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><ul><li>foo</li><li>bar</li><li>baz</li></ul></main>
         \\</body>
@@ -129,6 +141,9 @@ test "parse underscores in code element" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><ul><li><span style="font-family: Monospace">foo_bar</span></li><li><span style="font-family: Monospace">baz_qux</span></li><li><span style="font-family: Monospace">quux_corge</span></li></ul></main>
         \\</body>
@@ -151,6 +166,9 @@ test "parse parentheses in paragraph" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p>some text (with parentheses) in a paragraph</p>
@@ -173,6 +191,9 @@ test "parse underscore in link" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main>
         \\<p>a <i>link</i> to <a href="https://en.wikipedia.org/wiki/Here_document">here_doc</a> with <i>italics</i> and <b>bold</b></p>
@@ -195,6 +216,9 @@ test "parse underscores in block" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
         \\<body>
         \\<main><pre class="language-zig" style="font-family: Monospace;"><code>if (foo_bar_baz) return true;</code></pre></main>
         \\</body>
@@ -219,24 +243,26 @@ test "parse repeated whitespace" {
     allocator.free(parsed);
 }
 
-fn testFunc(alloc: std.mem.Allocator, node: Node) ![]const u8 {
+fn newH1(alloc: std.mem.Allocator, node: Node) ![]const u8 {
     return std.fmt.allocPrint(alloc, "<h0>{s}</h0>", .{node.content});
+}
+
+fn newRoot(alloc: std.mem.Allocator, node: Node) ![]const u8 {
+    _ = alloc;
+    return node.content;
 }
 
 test "custom handler func" {
     const html =
-        \\<!DOCTYPE html>
-        \\<html>
-        \\<body>
-        \\<main><h0>Hello</h0></main>
-        \\</body>
-        \\</html>
-        \\
+        \\<h0>Hello</h0>
     ;
 
     const md = "# Hello";
 
-    const parsed = try Zmd.parse(allocator, md, .{ .h1 = testFunc });
+    const parsed = try Zmd.parse(allocator, md, .{
+        .h1 = newH1,
+        .root = newRoot,
+    });
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
