@@ -219,24 +219,24 @@ test "parse repeated whitespace" {
     allocator.free(parsed);
 }
 
-test "empty struct defaults to Zmd.Fragments" {
+fn testFunc(alloc: std.mem.Allocator, node: Node) ![]const u8 {
+    return std.fmt.allocPrint(alloc, "<h0>{s}</h0>", .{node.content});
+}
+
+test "custom handler func" {
     const html =
         \\<!DOCTYPE html>
         \\<html>
         \\<body>
-        \\<main><ul><li>foo</li><li>bar</li><li>baz</li></ul></main>
+        \\<main><h0>Hello</h0></main>
         \\</body>
         \\</html>
         \\
     ;
 
-    const md =
-        \\  * foo
-        \\  * bar
-        \\  * baz
-    ;
+    const md = "# Hello";
 
-    const parsed = try Zmd.parse(allocator, md, .{});
+    const parsed = try Zmd.parse(allocator, md, .{ .h1 = testFunc });
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }

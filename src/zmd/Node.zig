@@ -23,13 +23,13 @@ pub fn toHtml(
     level: usize,
     handlers: Handlers,
 ) !void {
-    const formatter = switch (self.token.element.type) {
+    const formatter: ?*const Handlers.Handler = switch (self.token.element.type) {
         .linebreak, .none, .eof => null,
         .paragraph => if (level == 1)
-            getFormatterComptime(handlers, "paragraph")
+            &getHandlerComptime(handlers, "paragraph")
         else
-            getFormatterComptime(handlers, "text"),
-        inline else => |element_type| getFormatterComptime(handlers, @tagName(element_type)),
+            &getHandlerComptime(handlers, "text"),
+        inline else => |element_type| &getHandlerComptime(handlers, @tagName(element_type)),
     };
 
     var buf: ArrayList(u8) = try .initCapacity(allocator, 1);
@@ -72,51 +72,19 @@ pub fn toHtml(
     else
         buf.items;
 
-    if (formatter) |capture| {
-        switch (capture) {
-            .function => |function| {
-                const html_string = try function(allocator, self.*);
-                defer allocator.free(html_string);
-                try writer.writeAll(html_string);
-            },
-            .array => |array| {
-                try writer.writeAll(array[0]);
-                try writer.writeAll(self.content);
-                try writer.writeAll(array[1]);
-            },
-        }
+    if (formatter) |handler_func| {
+        const html_string = try handler_func(allocator, self.*);
+        defer allocator.free(html_string);
+        try writer.writeAll(html_string);
     }
 }
 
-/// Try to find a formatter from the provided fragments struct, fall back to defaults.
-pub fn getFormatterComptime(handlers: Handlers, comptime element_type: []const u8) Handlers.Handler {
+pub fn getHandlerComptime(
+    handlers: Handlers,
+    comptime element_type: []const u8,
+) Handlers.Handler {
     return if (@hasField(Handlers, element_type))
         @field(handlers, element_type)
     else
         handlers.default;
 }
-
-/// Same as `getFormatterComptime` but does not require a comptime argument.
-pub fn getFormatter(handlers: Handlers, element_type: []const u8) Formatter {
-    inline for (@typeInfo(handlers).@"struct".decls) |decl|
-        if (std.mem.eql(u8, decl.name, element_type))
-            return makeFormatter(handlers, decl.name);
-    return makeFormatter(handlers, "default");
-}
-
-fn makeFormatter(handlers: Handlers, comptime decl: []const u8) Formatter {
-    const formatter = @field(handlers, decl);
-    return switch (@typeInfo(@TypeOf(formatter))) {
-        .@"fn" => Formatter{ .function = &formatter },
-        .@"struct" => Formatter{ .array = formatter },
-        else => @panic("check here:Node.zig"),
-    };
-}
-
-const Formatter = union(enum) {
-    function: FormatFunction,
-    array: FormatArray,
-};
-
-const FormatFunction = *const fn (Allocator, Node) anyerror![]const u8;
-const FormatArray = [2][]const u8;
