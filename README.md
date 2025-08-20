@@ -39,7 +39,7 @@ pub fn main() !void {
 ### Customization
 Formatter for supported markdown elements can be overridden with fuctions:
 ```zig
-const html = Zmd.Parse(alloc, markdown, .{
+const html = zmd.parse(alloc, markdown, .{
     .block = myBlock,
 })
 
