@@ -1,6 +1,6 @@
 const std = @import("std");
 const Node = @import("Node.zig");
-const Handlers = @This();
+const Formatters = @This();
 const Allocator = std.mem.Allocator;
 const allocPrint = std.fmt.allocPrint;
 pub const Handler = fn (Allocator, Node) Allocator.Error![]const u8;

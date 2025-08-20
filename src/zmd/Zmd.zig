@@ -1,13 +1,10 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-pub const Node = @import("Node.zig");
+const Node = @import("Node.zig");
 const Ast = @import("Ast.zig");
 const ArrayList = std.ArrayList;
-//const tokens = @import("tokens.zig");
-//const html = @import("html.zig");
-//const Zmd = @This();
-const Handlers = @import("Handlers.zig");
+const Formatters = @import("Formatters.zig");
 
 /// Parse a Markdown string into html. Caller owns returned memory
 /// ```
@@ -17,11 +14,11 @@ const Handlers = @import("Handlers.zig");
 /// });
 /// defer alloc.free(html);
 /// ```
-/// Handler funcs should be `fn(Allocator, *Zmd.Node) anytype![]const u8`
+/// Handler funcs should be `fn(Allocator, *zmd.Node) anytype![]const u8`
 pub fn parse(
     allocator: Allocator,
-    input: []const u8,
-    handlers: Handlers,
+    markdown: []const u8,
+    formatters: Formatters,
 ) ![]const u8 {
     // TODO: plumb in fragments to allow users to provide their own html
     // fragments.
@@ -32,7 +29,7 @@ pub fn parse(
     var nodes: ArrayList(*Node) = try .initCapacity(alloc, 0);
     defer nodes.deinit(alloc);
 
-    const normalized = normalizeInput(alloc, input);
+    const normalized = normalizeInput(alloc, markdown);
     var ast: Ast = try .init(alloc, normalized);
 
     try ast.tokenize(alloc);
@@ -46,10 +43,10 @@ pub fn parse(
     const base_writer = buf.writer(alloc);
     try nodes.items[0].toHtml(
         alloc,
-        input,
+        markdown,
         base_writer,
         0,
-        handlers,
+        formatters,
     );
 
     return allocator.dupe(u8, buf.items);

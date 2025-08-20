@@ -1,6 +1,6 @@
 .{
     .name = .zmd,
-    .version = "0.0.0",
+    .version = "0.1.0",
     .fingerprint = 0x3cab843fed15c61f,
     .minimum_zig_version = "0.15.0-dev.1564+2761cc8be",
     .dependencies = .{},

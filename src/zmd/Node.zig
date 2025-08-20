@@ -2,9 +2,8 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
-const html = @import("html.zig");
 const Node = @This();
-const Handlers = @import("Handlers.zig");
+const Formatters = @import("Formatters.zig");
 
 token: tokens.Token,
 content: []const u8 = "",
@@ -21,15 +20,15 @@ pub fn toHtml(
     input: []const u8,
     writer: anytype,
     level: usize,
-    handlers: Handlers,
+    formatters: Formatters,
 ) !void {
-    const formatter: ?*const Handlers.Handler = switch (self.token.element.type) {
+    const formatter: ?*const Formatters.Handler = switch (self.token.element.type) {
         .linebreak, .none, .eof => null,
         .paragraph => if (level == 1)
-            &getHandlerComptime(handlers, "paragraph")
+            &getHandlerComptime(formatters, "paragraph")
         else
-            &getHandlerComptime(handlers, "text"),
-        inline else => |element_type| &getHandlerComptime(handlers, @tagName(element_type)),
+            &getHandlerComptime(formatters, "text"),
+        inline else => |element_type| &getHandlerComptime(formatters, @tagName(element_type)),
     };
 
     var buf: ArrayList(u8) = try .initCapacity(allocator, 1);
@@ -39,7 +38,7 @@ pub fn toHtml(
     switch (self.token.element.type) {
         .text => {
             if (self.children.items.len == 0) {
-                const escaped = try html.escape(
+                const escaped = try escape(
                     allocator,
                     input[self.token.start..self.token.end],
                 );
@@ -50,7 +49,7 @@ pub fn toHtml(
             }
         },
         .code, .block => {
-            const escaped = try html.escape(allocator, self.content);
+            const escaped = try escape(allocator, self.content);
             defer allocator.free(escaped);
             try buf_writer.writeAll(escaped);
         },
@@ -63,7 +62,7 @@ pub fn toHtml(
             input,
             buf_writer,
             level + 1,
-            handlers,
+            formatters,
         );
     }
 
@@ -80,11 +79,25 @@ pub fn toHtml(
 }
 
 pub fn getHandlerComptime(
-    handlers: Handlers,
+    formatters: Formatters,
     comptime element_type: []const u8,
-) Handlers.Handler {
-    return if (@hasField(Handlers, element_type))
-        @field(handlers, element_type)
+) Formatters.Handler {
+    return if (@hasField(Formatters, element_type))
+        @field(formatters, element_type)
     else
-        handlers.default;
+        formatters.default;
+}
+
+fn escape(allocator: Allocator, input: []const u8) ![]const u8 {
+    const replacements = .{
+        .{ "&", "&amp;" },
+        .{ "<", "&lt;" },
+        .{ ">", "&gt;" },
+    };
+
+    var output = input;
+    inline for (replacements) |replacement| {
+        output = try std.mem.replaceOwned(u8, allocator, output, replacement[0], replacement[1]);
+    }
+    return output;
 }
