@@ -24,4 +24,5 @@ jobs:
           version: master
 
       - name: Run tests
-        run: zig build test
+        run: |
+          zig build test
