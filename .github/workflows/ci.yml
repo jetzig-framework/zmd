@@ -8,7 +8,8 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
-  jobs:
+jobs:
+  cross-build:
     strategy:
       matrix:
         platform: [ubuntu-latest, windows-latest, macos-latest]
