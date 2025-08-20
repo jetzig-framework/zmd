@@ -20,7 +20,7 @@ _Zmd_ is used by the [Jetzig web framework](https://www.jetzig.dev/).
 
 ```zig
 const std = @import("std");
-const Zmd = @import("zmd").Zmd;
+const zmd = @import("zmd");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -28,7 +28,7 @@ pub fn main() !void {
 
     const markdown = "# Header";
 
-    const html = try Zmd.parse(allocator, markdown, .{});
+    const html = try zmd.parse(allocator, markdown, .{});
     defer allocator.free(html);
 
     const stdout = std.fs.File.stdout();
