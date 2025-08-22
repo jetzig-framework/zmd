@@ -28,18 +28,14 @@ pub fn parse(
     const root = try ast.parse(alloc);
     try nodes.append(alloc, root);
 
-    // var buf: ArrayList(u8) = try .initCapacity(alloc, 0);
-    // defer buf.deinit(alloc);
-    // const writer = buf.writer(alloc);
     var allocating: Writer.Allocating = .init(alloc);
     defer allocating.deinit();
-    var writer = allocating.writer;
 
     try nodes.items[0].toHtml(
         alloc,
         markdown,
         // writer,
-        &writer,
+        &allocating.writer,
         0,
         formatters,
     );

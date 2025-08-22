@@ -40,7 +40,6 @@ pub fn toHtml(
 
     var allocating: Writer.Allocating = .init(allocator);
     defer allocating.deinit();
-    var alloc_writer = allocating.writer;
 
     switch (token_type) {
         .text => {
@@ -51,12 +50,12 @@ pub fn toHtml(
                 );
                 defer allocator.free(escaped);
                 // try buf_writer.writeAll(escaped);
-                try alloc_writer.writeAll(escaped);
+                try allocating.writer.writeAll(escaped);
             } else {
                 // try buf_writer.writeAll(
                 //     input[self.token.start..self.token.end],
                 // );
-                try alloc_writer.writeAll(
+                try allocating.writer.writeAll(
                     input[self.token.start..self.token.end],
                 );
             }
@@ -64,6 +63,7 @@ pub fn toHtml(
         .code, .block => {
             const escaped = try escape(allocator, self.content);
             defer allocator.free(escaped);
+            try allocating.writer.writeAll(escaped);
             // try buf_writer.writeAll(escaped);
         },
         else => {},
@@ -74,7 +74,7 @@ pub fn toHtml(
             allocator,
             input,
             // buf_writer,
-            &alloc_writer,
+            &allocating.writer,
             level + 1,
             formatters,
         );
@@ -84,12 +84,12 @@ pub fn toHtml(
         std.mem.trim(
             u8,
             // buf.items,
-            alloc_writer.buffer,
+            try allocating.toOwnedSlice(),
             &std.ascii.whitespace,
         )
     else
         // buf.items;
-        alloc_writer.buffer;
+        try allocating.toOwnedSlice();
 
     if (formatter) |handler_func| {
         const html_string = try handler_func(allocator, self.*);
