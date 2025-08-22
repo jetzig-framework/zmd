@@ -34,13 +34,11 @@ pub fn parse(
     try nodes.items[0].toHtml(
         alloc,
         markdown,
-        // writer,
         &allocating.writer,
         0,
         formatters,
     );
 
-    // return allocator.dupe(u8, buf.items);
     return allocator.dupe(u8, try allocating.toOwnedSlice());
 }
 

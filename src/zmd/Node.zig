@@ -19,7 +19,6 @@ pub fn toHtml(
     self: *Node,
     allocator: Allocator,
     input: []const u8,
-    // writer: anytype,
     writer: *Writer,
     level: usize,
     formatters: Formatters,
@@ -34,10 +33,6 @@ pub fn toHtml(
         inline else => |element_type| &getHandlerComptime(formatters, @tagName(element_type)),
     };
 
-    // var buf: ArrayList(u8) = try .initCapacity(allocator, 0);
-    // defer buf.deinit(allocator);
-    // const buf_writer = buf.writer(allocator);
-
     var allocating: Writer.Allocating = .init(allocator);
     defer allocating.deinit();
 
@@ -49,12 +44,8 @@ pub fn toHtml(
                     input[self.token.start..self.token.end],
                 );
                 defer allocator.free(escaped);
-                // try buf_writer.writeAll(escaped);
                 try allocating.writer.writeAll(escaped);
             } else {
-                // try buf_writer.writeAll(
-                //     input[self.token.start..self.token.end],
-                // );
                 try allocating.writer.writeAll(
                     input[self.token.start..self.token.end],
                 );
@@ -64,7 +55,6 @@ pub fn toHtml(
             const escaped = try escape(allocator, self.content);
             defer allocator.free(escaped);
             try allocating.writer.writeAll(escaped);
-            // try buf_writer.writeAll(escaped);
         },
         else => {},
     }
@@ -73,7 +63,6 @@ pub fn toHtml(
         try node.toHtml(
             allocator,
             input,
-            // buf_writer,
             &allocating.writer,
             level + 1,
             formatters,
@@ -83,12 +72,10 @@ pub fn toHtml(
     self.content = if (self.token.element.trim)
         std.mem.trim(
             u8,
-            // buf.items,
             try allocating.toOwnedSlice(),
             &std.ascii.whitespace,
         )
     else
-        // buf.items;
         try allocating.toOwnedSlice();
 
     if (formatter) |handler_func| {
