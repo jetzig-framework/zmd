@@ -4,13 +4,14 @@ const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
 const Node = @This();
 const Formatters = @import("Formatters.zig");
+const Writer = std.Io.Writer;
 
 token: tokens.Token,
 content: []const u8 = "",
 meta: ?[]const u8 = null,
 href: ?[]const u8 = null,
 title: ?[]const u8 = null,
-children: std.ArrayList(*Node),
+children: ArrayList(*Node),
 index: usize = 0,
 
 /// Recursively translate a node into HTML.
@@ -18,11 +19,13 @@ pub fn toHtml(
     self: *Node,
     allocator: Allocator,
     input: []const u8,
-    writer: anytype,
+    // writer: anytype,
+    writer: *Writer,
     level: usize,
     formatters: Formatters,
 ) !void {
-    const formatter: ?*const Formatters.Handler = switch (self.token.element.type) {
+    const token_type = self.token.element.type;
+    const formatter: ?*const Formatters.Handler = switch (token_type) {
         .linebreak, .none, .eof => null,
         .paragraph => if (level == 1)
             &getHandlerComptime(formatters, "paragraph")
@@ -31,11 +34,15 @@ pub fn toHtml(
         inline else => |element_type| &getHandlerComptime(formatters, @tagName(element_type)),
     };
 
-    var buf: ArrayList(u8) = try .initCapacity(allocator, 1);
-    defer buf.deinit(allocator);
-    const buf_writer = buf.writer(allocator);
+    // var buf: ArrayList(u8) = try .initCapacity(allocator, 0);
+    // defer buf.deinit(allocator);
+    // const buf_writer = buf.writer(allocator);
 
-    switch (self.token.element.type) {
+    var allocating: Writer.Allocating = .init(allocator);
+    defer allocating.deinit();
+    var alloc_writer = allocating.writer;
+
+    switch (token_type) {
         .text => {
             if (self.children.items.len == 0) {
                 const escaped = try escape(
@@ -43,15 +50,21 @@ pub fn toHtml(
                     input[self.token.start..self.token.end],
                 );
                 defer allocator.free(escaped);
-                try buf_writer.writeAll(escaped);
+                // try buf_writer.writeAll(escaped);
+                try alloc_writer.writeAll(escaped);
             } else {
-                try buf_writer.writeAll(input[self.token.start..self.token.end]);
+                // try buf_writer.writeAll(
+                //     input[self.token.start..self.token.end],
+                // );
+                try alloc_writer.writeAll(
+                    input[self.token.start..self.token.end],
+                );
             }
         },
         .code, .block => {
             const escaped = try escape(allocator, self.content);
             defer allocator.free(escaped);
-            try buf_writer.writeAll(escaped);
+            // try buf_writer.writeAll(escaped);
         },
         else => {},
     }
@@ -60,16 +73,23 @@ pub fn toHtml(
         try node.toHtml(
             allocator,
             input,
-            buf_writer,
+            // buf_writer,
+            &alloc_writer,
             level + 1,
             formatters,
         );
     }
 
     self.content = if (self.token.element.trim)
-        std.mem.trim(u8, buf.items, &std.ascii.whitespace)
+        std.mem.trim(
+            u8,
+            // buf.items,
+            alloc_writer.buffer,
+            &std.ascii.whitespace,
+        )
     else
-        buf.items;
+        // buf.items;
+        alloc_writer.buffer;
 
     if (formatter) |handler_func| {
         const html_string = try handler_func(allocator, self.*);

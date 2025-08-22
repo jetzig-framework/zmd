@@ -2,6 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const ArrayList = std.ArrayList;
+const Writer = std.Io.Writer;
 
 pub const Node = @import("zmd/Node.zig");
 pub const Ast = @import("zmd/Ast.zig");
@@ -27,20 +28,24 @@ pub fn parse(
     const root = try ast.parse(alloc);
     try nodes.append(alloc, root);
 
-    var buf: ArrayList(u8) = try .initCapacity(alloc, 0);
-    defer buf.deinit(alloc);
+    // var buf: ArrayList(u8) = try .initCapacity(alloc, 0);
+    // defer buf.deinit(alloc);
+    // const writer = buf.writer(alloc);
+    var allocating: Writer.Allocating = .init(alloc);
+    defer allocating.deinit();
+    var writer = allocating.writer;
 
-    // TODO: replace this with new std.Io.Writer
-    const base_writer = buf.writer(alloc);
     try nodes.items[0].toHtml(
         alloc,
         markdown,
-        base_writer,
+        // writer,
+        &writer,
         0,
         formatters,
     );
 
-    return allocator.dupe(u8, buf.items);
+    // return allocator.dupe(u8, buf.items);
+    return allocator.dupe(u8, try allocating.toOwnedSlice());
 }
 
 // Normalize text to unix-style linebreaks and ensure ending with a linebreak to simplify
