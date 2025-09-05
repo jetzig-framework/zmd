@@ -20,11 +20,11 @@ debug: bool = false,
 node_registry: ArrayList(*Node) = undefined,
 
 /// Initialize a new Ast.
-pub fn init(allocator: Allocator, input: []const u8) !Ast {
+pub fn init(input: []const u8) Ast {
     return .{
         .input = input,
-        .tokens_list = try .initCapacity(allocator, 1),
-        .node_registry = try .initCapacity(allocator, 1),
+        .tokens_list = .empty,
+        .node_registry = .empty,
     };
 }
 
@@ -147,10 +147,11 @@ pub fn tokenize(self: *Ast, allocator: Allocator) !void {
     );
 
     if (self.debug) {
-        for (self.tokens_list.items) |token| self.debugToken(
-            allocator,
-            token,
-        );
+        for (self.tokens_list.items) |token|
+            try self.debugToken(
+                allocator,
+                token,
+            );
     }
 
     self.state = .tokenized;
@@ -659,12 +660,12 @@ fn debugTree(node: *Node, level: usize) void {
 }
 
 // Output the type and content of a token
-fn debugToken(self: Ast, allocator: Allocator, token: tokens.Token) void {
-    var buf = std.ArrayList(u8).initCapacity(allocator, 1) catch @panic("asdf");
-    defer buf.deinit(allocator);
-    var writer = buf.writer(allocator).adaptToNewApi(&.{}).new_interface;
+fn debugToken(self: Ast, allocator: Allocator, token: tokens.Token) !void {
+    var aw: std.Io.Writer.Allocating = .init(allocator);
+    defer aw.deinit();
+    var writer = &aw.writer;
     writer.writeByte('"') catch @panic("OOM");
-    std.zig.stringEscape(self.input[token.start..token.end], &writer) catch @panic("OOM");
+    std.zig.stringEscape(self.input[token.start..token.end], writer) catch @panic("OOM");
     writer.writeByte('"') catch @panic("OOM");
-    std.debug.print("[{s}] {s}\n", .{ @tagName(token.element.type), buf.items });
+    std.debug.print("[{s}] {s}\n", .{ @tagName(token.element.type), try aw.toOwnedSlice() });
 }
