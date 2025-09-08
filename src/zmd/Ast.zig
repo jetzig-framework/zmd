@@ -4,9 +4,13 @@ const tokens = @import("tokens.zig");
 const Allocator = std.mem.Allocator;
 const Ast = @This();
 const ArrayList = std.ArrayList;
+const Token = tokens.Token;
+const Element = tokens.Element;
+const ElementType = tokens.ElementType;
+const AutoHashMap = std.AutoHashMap;
 
 input: []const u8,
-tokens_list: ArrayList(tokens.Token),
+tokens_list: ArrayList(Token),
 state: enum { initial, tokenized, parsed } = .initial,
 current_node: *Node = undefined,
 /// Used to optimize tokenization: the last `isCleared()` result
@@ -14,8 +18,8 @@ last_cleared: struct { index: usize, cleared: bool } = .{
     .index = 0,
     .cleared = true,
 },
-visited: std.AutoHashMap(usize, bool) = undefined,
-elements_map: std.AutoHashMap(tokens.ElementType, tokens.Element) = undefined,
+visited: AutoHashMap(usize, bool) = undefined,
+elements_map: AutoHashMap(ElementType, Element) = undefined,
 debug: bool = false,
 node_registry: ArrayList(*Node) = undefined,
 
@@ -64,23 +68,23 @@ pub fn parse(self: *Ast, allocator: Allocator) !*Node {
 }
 
 /// Iterate through input, separating into tokens to be fed to the parser.
-pub fn tokenize(self: *Ast, allocator: Allocator) !void {
+fn tokenize(self: *Ast, allocator: Allocator) !void {
     if (self.state != .initial) unreachable;
 
     self.elements_map = .init(allocator);
 
-    for (tokens.elements) |element| {
+    for (tokens.elements) |element|
         try self.elements_map.put(element.type, element);
-    }
 
     var index: usize = 0;
 
     var previous_token: ?tokens.Token = null;
 
-    try self.tokens_list.append(
-        allocator,
-        .{ .element = tokens.Root, .start = 0, .end = 0 },
-    );
+    try self.tokens_list.append(allocator, .{
+        .element = tokens.Root,
+        .start = 0,
+        .end = 0,
+    });
 
     while (index < self.input.len) {
         if (self.firstToken(previous_token, index)) |token| {
