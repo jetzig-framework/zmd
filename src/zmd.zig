@@ -22,9 +22,8 @@ pub fn parse(
     defer nodes.deinit(alloc);
 
     const normalized = try normalizeInput(alloc, input);
-    var ast: Ast = .init(normalized);
+    var ast: Ast = try .init(alloc, normalized);
     defer ast.deinit(alloc);
-    try ast.tokenize(alloc);
     const root = try ast.parse(alloc);
     try nodes.append(alloc, root);
 

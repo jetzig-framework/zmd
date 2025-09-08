@@ -20,12 +20,14 @@ debug: bool = false,
 node_registry: ArrayList(*Node) = undefined,
 
 /// Initialize a new Ast.
-pub fn init(input: []const u8) Ast {
-    return .{
+pub fn init(allocator: Allocator, input: []const u8) !Ast {
+    var ast: Ast = .{
         .input = input,
         .tokens_list = .empty,
         .node_registry = .empty,
     };
+    try ast.tokenize(allocator);
+    return ast;
 }
 
 /// Deinitialize and free allocated memory.
