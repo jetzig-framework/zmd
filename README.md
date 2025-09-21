@@ -69,7 +69,7 @@ fn myBlock(allocator: std.mem.Allocator, node: zmd.Node) ![]const u8 {
 }
 ```
 
-See [src/zmd/Handlers.zig](src/zmd/Handlers.zig) for the full reference.
+See [src/zmd/Formatters.zig](src/zmd/Formatters.zig) for the full reference.
 
 ## License
 
