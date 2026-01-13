@@ -246,6 +246,56 @@ test "italic (embedded)" {
     try expectEqualStrings(html, parsed);
 }
 
+test "italic with asterisks (dangling)" {
+    const html =
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
+        \\<body>
+        \\<main>
+        \\<p><i>italic</i></p>
+        \\</main>
+        \\</body>
+        \\</html>
+        \\
+    ;
+
+    const md =
+        \\*italic*
+    ;
+
+    const parsed = try zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
+}
+
+test "italic with asterisks (embedded)" {
+    const html =
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
+        \\<body>
+        \\<main>
+        \\<p>some <i>italic</i> text</p>
+        \\</main>
+        \\</body>
+        \\</html>
+        \\
+    ;
+
+    const md =
+        \\some *italic* text
+    ;
+
+    const parsed = try zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
+}
+
 test "code (dangling)" {
     const html =
         \\<!DOCTYPE html>
