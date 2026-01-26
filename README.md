@@ -36,36 +36,71 @@ pub fn main() !void {
 }
 ```
 
+There is a `zmd.parseW()` function that allows you to supply your own writer, part of my ongoing effort to remove as many allocations as I can. `.parse()` currently is a wrapper around it that creates it's own allocating writer;
+
 ### Customization
-Formatter for supported markdown elements can be overridden with fuctions:
+Formatter for supported markdown elements can be overridden with functions:
 ```zig
 const html = zmd.parse(alloc, markdown, .{
-    .block = myBlock,
+    .block = myBlockWriter,
 })
 
 ```
-The function signature for formatters is `fn (Allocator, Node) ![]const u8`
+The function signature for formatters is `fn (*Writer, Node) Writer.Error![]const u8`
 
-Some node types provie special attributes such as:
+Some node types provide special attributes such as:
+
+* `href`, `title` - provided on `image` and `link` elements.
+```zig
+pub fn link(writer: *Writer, node: Node) Writer.Error![]const u8 {
+    try writer.print(
+        \\<a href="{s}">{s}</a>
+    , .{ node.href.?, node.title.? });
+    return "";
+}
+
+pub fn image(writer: *Writer, node: Node) Writer.Error![]const u8 {
+    try writer.print(
+        \\<img src="{s}" title="{s}">
+    , .{ node.href.?, node.title.? });
+    return "";
+}
+```
 
 * `meta` - provided on `block` elements. This is the language specifier (`zig`) in this example:
-```zig
+
+```md
+'''zig
 if (true) std.debug.print("some zig code");
+'''
 ```
-* `href`, `title` - provided on `image` and `link` elements.
 
 ```zig
-fn myBlock(allocator: std.mem.Allocator, node: zmd.Node) ![]const u8 {
-    const style = "font-family: Monospace;";
+pub fn myBlockWriter(writer: *Writer, node: Node) Writer.Error![]const u8 {
 
-    return if (node.meta) |meta|
-        std.fmt.allocPrint(allocator,
-            \\<pre class="language-{s}" style="{s}"><code>{s}</code></pre>
-        , .{ meta, style, node.content })
-    else
-        std.fmt.allocPrint(allocator,
-            \\<pre style="{s}"><code>{s}</code></pre>
-        , .{ style, node.content });
+    // writer writes opening blocks, or in the cases like img, the entire tag
+    try writer.writeAll(
+        \\<pre style="font-family: Monospace;"
+    );
+    if (node.meta) |meta|
+        try writer.print(
+            \\ class="language-{s}"
+        , .{meta});
+    try writer.writeAll(
+        \\>
+        \\<code>
+        \\
+    );
+
+    // Content is written in parser
+
+    // Closing tags
+    return 
+    \\
+    \\</code>
+    \\</pre>
+    \\
+    ;
 }
 ```
 

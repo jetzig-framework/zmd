@@ -75,9 +75,7 @@ const Default = struct {
     pub fn image(writer: *Writer, node: Node) Writer.Error![]const u8 {
         try writer.print(
             \\<img src="{s}" title="{s}">
-        ,
-            .{ node.href.?, node.title.? },
-        );
+        , .{ node.href.?, node.title.? });
         return "";
     }
 
@@ -199,7 +197,8 @@ const Default = struct {
     }
 
     pub fn default(writer: *Writer, node: Node) Writer.Error![]const u8 {
-        try writer.writeAll(node.content);
+        _ = writer;
+        _ = node;
         return "";
     }
 };
