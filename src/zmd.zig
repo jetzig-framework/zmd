@@ -9,11 +9,12 @@ pub const Ast = @import("zmd/Ast.zig");
 pub const tokens = @import("zmd/tokens.zig");
 pub const Formatters = @import("zmd/Formatters.zig");
 
-pub fn parse(
+pub fn parseW(
     allocator: Allocator,
+    writer: *Writer,
     input: []const u8,
     formatters: Formatters,
-) ![]const u8 {
+) !void {
     var arena: ArenaAllocator = .init(allocator);
     defer arena.deinit();
     const alloc = arena.allocator();
@@ -27,27 +28,30 @@ pub fn parse(
     const root = try ast.parse(alloc);
     try nodes.append(alloc, root);
 
-    var aw: Writer.Allocating = .init(alloc);
-    defer aw.deinit();
-
     try nodes.items[0].toHtml(
-        alloc,
         normalized,
-        &aw.writer,
+        writer,
         0,
         formatters,
+        false,
+        false,
     );
-
-    return allocator.dupe(u8, try aw.toOwnedSlice());
 }
 
-// Normalize text to unix-style linebreaks and ensure ending with a linebreak to simplify
-// Windows compatibility.
-fn normalizeInput(allocator: Allocator, input: []const u8) ![]const u8 {
-    const output = try std.mem.replaceOwned(u8, allocator, input, "\r\n", "\n");
-    if (std.mem.endsWith(u8, output, "\n")) return output;
+pub fn parse(
+    allocator: Allocator,
+    input: []const u8,
+    formatters: Formatters,
+) ![]const u8 {
+    var aw: Writer.Allocating = .init(allocator);
+    defer aw.deinit();
+    try parseW(allocator, &aw.writer, input, formatters);
+    return aw.toOwnedSlice();
+}
 
-    return std.mem.concat(allocator, u8, &[_][]const u8{ output, "\n" });
+fn normalizeInput(allocator: Allocator, input: []const u8) ![]const u8 {
+    if (input.len > 0 and input[input.len - 1] == '\n') return input;
+    return std.mem.concat(allocator, u8, &[_][]const u8{ input, "\n" });
 }
 
 test {

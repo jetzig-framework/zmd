@@ -1,5 +1,4 @@
 const std = @import("std");
-const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
 const Node = @This();
@@ -17,12 +16,13 @@ index: usize = 0,
 /// Recursively translate a node into HTML.
 pub fn toHtml(
     self: *Node,
-    allocator: Allocator,
     input: []const u8,
     writer: *Writer,
     level: usize,
     formatters: Formatters,
-) !void {
+    trim_start: bool,
+    trim_end: bool,
+) Writer.Error!void {
     const token_type = self.token.element.type;
     const formatter: ?*const Formatters.Handler = switch (token_type) {
         .linebreak, .none, .eof => null,
@@ -33,56 +33,44 @@ pub fn toHtml(
         inline else => |element_type| &getHandlerComptime(formatters, @tagName(element_type)),
     };
 
-    var allocating: Writer.Allocating = .init(allocator);
-    defer allocating.deinit();
+    // Call formatter to write opening markup; get close tag.
+    const close_tag: []const u8 = if (formatter) |handler_func|
+        try handler_func(writer, self.*)
+    else
+        "";
 
+    // Write own content directly to the writer.
     switch (token_type) {
         .text => {
             if (self.children.items.len == 0) {
-                const escaped = try escape(
-                    allocator,
-                    input[self.token.start..self.token.end],
-                );
-                defer allocator.free(escaped);
-                try allocating.writer.writeAll(escaped);
-            } else {
-                try allocating.writer.writeAll(
-                    input[self.token.start..self.token.end],
-                );
+                var content = input[self.token.start..self.token.end];
+                if (trim_start) content = std.mem.trimLeft(u8, content, &std.ascii.whitespace);
+                if (trim_end) content = std.mem.trimRight(u8, content, &std.ascii.whitespace);
+                try writeEscaped(writer, content);
             }
         },
         .code, .block => {
-            const escaped = try escape(allocator, self.content);
-            defer allocator.free(escaped);
-            try allocating.writer.writeAll(escaped);
+            try writeEscaped(writer, self.content);
         },
         else => {},
     }
 
-    for (self.children.items) |node| {
+    // Recurse into children, writing directly to the same writer.
+    const self_trim = self.token.element.trim;
+    const len = self.children.items.len;
+    for (self.children.items, 0..) |node, i| {
         try node.toHtml(
-            allocator,
             input,
-            &allocating.writer,
+            writer,
             level + 1,
             formatters,
+            (self_trim or trim_start) and i == 0,
+            (self_trim or trim_end) and i == len - 1,
         );
     }
 
-    self.content = if (self.token.element.trim)
-        std.mem.trim(
-            u8,
-            try allocating.toOwnedSlice(),
-            &std.ascii.whitespace,
-        )
-    else
-        try allocating.toOwnedSlice();
-
-    if (formatter) |handler_func| {
-        const html_string = try handler_func(allocator, self.*);
-        defer allocator.free(html_string);
-        try writer.writeAll(html_string);
-    }
+    // Write close tag.
+    if (close_tag.len > 0) try writer.writeAll(close_tag);
 }
 
 pub fn getHandlerComptime(
@@ -95,16 +83,21 @@ pub fn getHandlerComptime(
         formatters.default;
 }
 
-fn escape(allocator: Allocator, input: []const u8) ![]const u8 {
-    const replacements = .{
-        .{ "&", "&amp;" },
-        .{ "<", "&lt;" },
-        .{ ">", "&gt;" },
-    };
-
-    var output = input;
-    inline for (replacements) |replacement| {
-        output = try std.mem.replaceOwned(u8, allocator, output, replacement[0], replacement[1]);
+fn writeEscaped(writer: *Writer, input: []const u8) Writer.Error!void {
+    var start: usize = 0;
+    for (input, 0..) |byte, i| {
+        const replacement: ?[]const u8 = switch (byte) {
+            '&' => "&amp;",
+            '<' => "&lt;",
+            '>' => "&gt;",
+            '\r' => "",
+            else => null,
+        };
+        if (replacement) |r| {
+            if (i > start) try writer.writeAll(input[start..i]);
+            try writer.writeAll(r);
+            start = i + 1;
+        }
     }
-    return output;
+    if (start < input.len) try writer.writeAll(input[start..]);
 }

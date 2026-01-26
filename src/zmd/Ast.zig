@@ -227,6 +227,18 @@ fn firstToken(self: *Ast, previous_token: ?Token, index: usize) ?Token {
             };
     }
 
+    // Ordered list items: any digits followed by ". "
+    if (index_clear and std.ascii.isDigit(self.input[index])) {
+        var end = index + 1;
+        while (end < self.input.len and std.ascii.isDigit(self.input[end])) : (end += 1) {}
+        if (end + 2 <= self.input.len and self.input[end] == '.' and self.input[end + 1] == ' ')
+            return .{
+                .element = .{ .type = .ordered_list_item, .close = .linebreak, .clear = true },
+                .start = index,
+                .end = end + 2,
+            };
+    }
+
     return null;
 }
 
@@ -536,7 +548,7 @@ fn parseBlock(self: *Ast, node: *Node, index: usize) void {
     // meta is the "zig" in ```zig
     if (has_meta) {
         if (std.mem.indexOfScalar(u8, content, '\n')) |linebreak_index| {
-            node.meta = content[0..linebreak_index];
+            node.meta = std.mem.trimRight(u8, content[0..linebreak_index], "\r");
             node.content = strip(content[linebreak_index..]);
         }
     } else node.content = strip(content);

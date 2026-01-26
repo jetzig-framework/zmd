@@ -63,7 +63,6 @@ pub const elements = [_]Element{
     .{ .type = .unordered_list_item, .syntax = "+ ", .close = .linebreak, .clear = true },
     .{ .type = .unordered_list_item, .syntax = "* ", .close = .linebreak, .clear = true },
     .{ .type = .unordered_list_item, .syntax = "- ", .close = .linebreak, .clear = true },
-    .{ .type = .ordered_list_item, .syntax = "1. ", .close = .linebreak, .clear = true },
 };
 
 pub const toggles = std.StaticStringMap(Element).initComptime(

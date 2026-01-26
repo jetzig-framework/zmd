@@ -1,5 +1,5 @@
 const std = @import("std");
-const Zmd = @import("zmd/Zmd.zig");
+const zmd = @import("zmd.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -22,9 +22,7 @@ pub fn main() !void {
         \\some more text with a `code` fragment
     ;
 
-    const html = try Zmd.parse(allocator, markdown, .{});
-    defer allocator.free(html);
-
-    const stdout = std.fs.File.stdout();
-    try stdout.writeAll(html);
+    const stdout: std.fs.File = .stdout();
+    const writer = stdout.writer(.{});
+    try zmd.parseW(allocator, &writer.interface, markdown, .{});
 }

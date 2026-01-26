@@ -1,9 +1,8 @@
 const std = @import("std");
 const Node = @import("Node.zig");
+const Writer = std.Io.Writer;
 const Formatters = @This();
-const Allocator = std.mem.Allocator;
-const allocPrint = std.fmt.allocPrint;
-pub const Handler = fn (Allocator, Node) Allocator.Error![]const u8;
+pub const Handler = fn (*Writer, Node) Writer.Error![]const u8;
 
 root: Handler = Default.root,
 block: Handler = Default.block,
@@ -25,124 +24,182 @@ paragraph: Handler = Default.paragraph,
 default: Handler = Default.default,
 
 const Default = struct {
-    pub fn root(allocator: Allocator, node: Node) ![]const u8 {
-        const html =
+    pub fn root(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll(
             \\<!DOCTYPE html>
             \\<html>
             \\<head>
             \\  <meta charset="utf8">
             \\</head>
             \\<body>
-            \\<main>{s}</main>
-            \\</body>
-            \\</html>
+            \\<main>
             \\
+        );
+        return 
+        \\</main>
+        \\</body>
+        \\</html>
+        \\
         ;
-        return allocPrint(allocator, html, .{node.content});
     }
 
-    pub fn block(allocator: Allocator, node: Node) ![]const u8 {
-        const style = "font-family: Monospace;";
-        return if (node.meta) |meta|
-            allocPrint(
-                allocator,
-                "<pre class=\"language-{s}\" style=\"{s}\"><code>{s}</code></pre>",
-                .{ meta, style, node.content },
-            )
-        else
-            allocPrint(
-                allocator,
-                "<pre style=\"{s}\"><code>{s}</code></pre>",
-                .{ style, node.content },
-            );
+    pub fn block(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        try writer.writeAll(
+            \\<pre style="font-family: Monospace;"
+        );
+        if (node.meta) |meta|
+            try writer.print(
+                \\ class="language-{s}"
+            , .{meta});
+        try writer.writeAll(
+            \\>
+            \\<code>
+            \\
+        );
+        return 
+        \\
+        \\</code>
+        \\</pre>
+        \\
+        ;
     }
 
-    pub fn link(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "<a href=\"{s}\">{s}</a>",
+    pub fn link(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        try writer.print(
+            \\<a href="{s}">{s}</a>
+        , .{ node.href.?, node.title.? });
+        return "";
+    }
+
+    pub fn image(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        try writer.print(
+            \\<img src="{s}" title="{s}">
+        ,
             .{ node.href.?, node.title.? },
         );
+        return "";
     }
 
-    pub fn image(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "<img src=\"{s}\" title=\"{s}\" />",
-            .{ node.href.?, node.title.? },
+    pub fn h1(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<h1>");
+        return 
+        \\</h1>
+        \\
+        ;
+    }
+
+    pub fn h2(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<h2>");
+        return 
+        \\</h2>
+        \\
+        ;
+    }
+
+    pub fn h3(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<h3>");
+        return 
+        \\</h3>
+        \\
+        ;
+    }
+
+    pub fn h4(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<h4>");
+        return 
+        \\</h4>
+        \\
+        ;
+    }
+
+    pub fn h5(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<h5>");
+        return 
+        \\</h5>
+        \\
+        ;
+    }
+
+    pub fn h6(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<h6>");
+        return 
+        \\</h6>
+        \\
+        ;
+    }
+
+    pub fn bold(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<b>");
+        return "</b>";
+    }
+
+    pub fn italic(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<i>");
+        return "</i>";
+    }
+
+    pub fn unordered_list(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll(
+            \\<ul>
+            \\
         );
+        return 
+        \\</ul>
+        \\
+        ;
     }
 
-    pub fn h1(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h1>{s}</h1>\n", .{node.content});
-    }
-
-    pub fn h2(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h2>{s}</h2>\n", .{node.content});
-    }
-
-    pub fn h3(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h3>{s}</h3>\n", .{node.content});
-    }
-
-    pub fn h4(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h4>{s}</h4>\n", .{node.content});
-    }
-
-    pub fn h5(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h5>{s}</h5>\n", .{node.content});
-    }
-
-    pub fn h6(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h6>{s}</h6>\n", .{node.content});
-    }
-
-    pub fn bold(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "b");
-    }
-
-    pub fn italic(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "i");
-    }
-
-    pub fn unordered_list(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "ul");
-    }
-
-    pub fn ordered_list(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "ol");
-    }
-
-    pub fn list_item(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "li");
-    }
-
-    pub fn code(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "<span style=\"font-family: Monospace\">{s}</span>",
-            .{node.content},
+    pub fn ordered_list(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll(
+            \\<ol>
+            \\
         );
+        return 
+        \\</ol>
+        \\
+        ;
     }
 
-    pub fn paragraph(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "\n<p>{s}</p>\n",
-            .{node.content},
+    pub fn list_item(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("  <li>");
+        return 
+        \\</li>
+        \\
+        ;
+    }
+
+    pub fn code(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll(
+            \\<span style="font-family: Monospace;">
         );
+
+        return "</span>";
     }
 
-    pub fn default(allocator: Allocator, node: Node) ![]const u8 {
-        _ = allocator;
-        return node.content;
+    pub fn paragraph(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        _ = node;
+        try writer.writeAll("<p>");
+        return 
+        \\</p>
+        \\
+        ;
+    }
+
+    pub fn default(writer: *Writer, node: Node) Writer.Error![]const u8 {
+        try writer.writeAll(node.content);
+        return "";
     }
 };
-
-fn wrap(allocator: Allocator, content: []const u8, string: []const u8) ![]const u8 {
-    return allocPrint(
-        allocator,
-        "<{s}>{s}</{s}>",
-        .{ string, content, string },
-    );
-}
