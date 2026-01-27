@@ -33,7 +33,8 @@ const Default = struct {
             \\  <meta charset="utf8">
             \\</head>
             \\<body>
-            \\<main>{s}</main>
+            \\<main>
+            \\{s}</main>
             \\</body>
             \\</html>
             \\
@@ -44,57 +45,77 @@ const Default = struct {
     pub fn block(allocator: Allocator, node: Node) ![]const u8 {
         const style = "font-family: Monospace;";
         return if (node.meta) |meta|
-            allocPrint(
-                allocator,
-                "<pre class=\"language-{s}\" style=\"{s}\"><code>{s}</code></pre>",
-                .{ meta, style, node.content },
-            )
+            allocPrint(allocator,
+                \\<pre class="language-{s}" style="{s}">
+                \\<code>
+                \\{s}
+                \\</code>
+                \\</pre>
+                \\
+            , .{ meta, style, node.content })
         else
-            allocPrint(
-                allocator,
-                "<pre style=\"{s}\"><code>{s}</code></pre>",
-                .{ style, node.content },
-            );
+            allocPrint(allocator,
+                \\<pre style="{s}">
+                \\<code>
+                \\{s}
+                \\</code>
+                \\</pre>
+                \\
+            , .{ style, node.content });
     }
 
     pub fn link(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "<a href=\"{s}\">{s}</a>",
-            .{ node.href.?, node.title.? },
-        );
+        return allocPrint(allocator,
+            \\<a href="{s}">{s}</a>
+        , .{ node.href.?, node.title.? });
     }
 
     pub fn image(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "<img src=\"{s}\" title=\"{s}\" />",
-            .{ node.href.?, node.title.? },
-        );
+        return allocPrint(allocator,
+            \\<img src="{s}" title="{s}">
+        , .{ node.href.?, node.title.? });
     }
 
     pub fn h1(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h1>{s}</h1>\n", .{node.content});
+        return allocPrint(allocator,
+            \\<h1>{s}</h1>
+            \\
+        , .{node.content});
     }
 
     pub fn h2(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h2>{s}</h2>\n", .{node.content});
+        return allocPrint(allocator,
+            \\<h2>{s}</h2>
+            \\
+        , .{node.content});
     }
 
     pub fn h3(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h3>{s}</h3>\n", .{node.content});
+        return allocPrint(allocator,
+            \\<h3>{s}</h3>
+            \\
+        , .{node.content});
     }
 
     pub fn h4(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h4>{s}</h4>\n", .{node.content});
+        return allocPrint(allocator,
+            \\<h4>{s}</h4>
+            \\
+        , .{node.content});
     }
 
     pub fn h5(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h5>{s}</h5>\n", .{node.content});
+        return allocPrint(allocator,
+            \\<h5>{s}</h5>
+            \\
+        , .{node.content});
     }
 
     pub fn h6(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(allocator, "<h6>{s}</h6>\n", .{node.content});
+        return allocPrint(allocator,
+            \\<h6>{s}</h6>
+            \\
+        , .{node.content});
     }
 
     pub fn bold(allocator: Allocator, node: Node) ![]const u8 {
@@ -106,31 +127,39 @@ const Default = struct {
     }
 
     pub fn unordered_list(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "ul");
+        return allocPrint(allocator,
+            \\<ul>
+            \\{s}</ul>
+            \\
+        , .{node.content});
     }
 
     pub fn ordered_list(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "ol");
+        return allocPrint(allocator,
+            \\<ol>
+            \\{s}</ol>
+            \\
+        , .{node.content});
     }
 
     pub fn list_item(allocator: Allocator, node: Node) ![]const u8 {
-        return wrap(allocator, node.content, "li");
+        return allocPrint(allocator,
+            \\  <li>{s}</li>
+            \\
+        , .{node.content});
     }
 
     pub fn code(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "<span style=\"font-family: Monospace\">{s}</span>",
-            .{node.content},
-        );
+        return allocPrint(allocator,
+            \\<span style="font-family: Monospace;">{s}</span>
+        , .{node.content});
     }
 
     pub fn paragraph(allocator: Allocator, node: Node) ![]const u8 {
-        return allocPrint(
-            allocator,
-            "\n<p>{s}</p>\n",
-            .{node.content},
-        );
+        return allocPrint(allocator,
+            \\<p>{s}</p>
+            \\
+        , .{node.content});
     }
 
     pub fn default(allocator: Allocator, node: Node) ![]const u8 {
@@ -142,7 +171,7 @@ const Default = struct {
 fn wrap(allocator: Allocator, content: []const u8, string: []const u8) ![]const u8 {
     return allocPrint(
         allocator,
-        "<{s}>{s}</{s}>",
-        .{ string, content, string },
+        "<{[tag]s}>{[content]s}</{[tag]s}>",
+        .{ .tag = string, .content = content },
     );
 }

@@ -11,7 +11,8 @@ test "h1" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h1>Header</h1>
+        \\<main>
+        \\<h1>Header</h1>
         \\</main>
         \\</body>
         \\</html>
@@ -35,7 +36,8 @@ test "h2" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h2>Header</h2>
+        \\<main>
+        \\<h2>Header</h2>
         \\</main>
         \\</body>
         \\</html>
@@ -59,7 +61,8 @@ test "h3" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h3>Header</h3>
+        \\<main>
+        \\<h3>Header</h3>
         \\</main>
         \\</body>
         \\</html>
@@ -83,7 +86,8 @@ test "h4" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h4>Header</h4>
+        \\<main>
+        \\<h4>Header</h4>
         \\</main>
         \\</body>
         \\</html>
@@ -106,7 +110,8 @@ test "h5" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h5>Header</h5>
+        \\<main>
+        \\<h5>Header</h5>
         \\</main>
         \\</body>
         \\</html>
@@ -130,7 +135,8 @@ test "h6" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h6>Header</h6>
+        \\<main>
+        \\<h6>Header</h6>
         \\</main>
         \\</body>
         \\</html>
@@ -305,7 +311,7 @@ test "code (dangling)" {
         \\</head>
         \\<body>
         \\<main>
-        \\<p><span style="font-family: Monospace">code</span></p>
+        \\<p><span style="font-family: Monospace;">code</span></p>
         \\</main>
         \\</body>
         \\</html>
@@ -354,9 +360,15 @@ test "block" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><pre class="language-zig" style="font-family: Monospace;"><code>if (1 &lt; 10) {
+        \\<main>
+        \\<pre class="language-zig" style="font-family: Monospace;">
+        \\<code>
+        \\if (1 &lt; 10) {
         \\   return "1 is less than 10";
-        \\}</code></pre></main>
+        \\}
+        \\</code>
+        \\</pre>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -384,7 +396,7 @@ test "image" {
         \\</head>
         \\<body>
         \\<main>
-        \\<p><img src="https://example.com/image.png" title="image title" /></p>
+        \\<p><img src="https://example.com/image.png" title="image title"></p>
         \\</main>
         \\</body>
         \\</html>
@@ -433,8 +445,8 @@ test "paragraph" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h1>a title</h1>
-        \\
+        \\<main>
+        \\<h1>a title</h1>
         \\<p>a paragraph</p>
         \\</main>
         \\</body>
@@ -461,7 +473,13 @@ test "unordered list (+)" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\<main>
+        \\<ul>
+        \\  <li>list item 1</li>
+        \\  <li>list item 2</li>
+        \\  <li>list item 3</li>
+        \\</ul>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -486,7 +504,13 @@ test "unordered list (-)" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\<main>
+        \\<ul>
+        \\  <li>list item 1</li>
+        \\  <li>list item 2</li>
+        \\  <li>list item 3</li>
+        \\</ul>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -511,7 +535,13 @@ test "unordered list (*)" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><ul><li>list item 1</li><li>list item 2</li><li>list item 3</li></ul></main>
+        \\<main>
+        \\<ul>
+        \\  <li>list item 1</li>
+        \\  <li>list item 2</li>
+        \\  <li>list item 3</li>
+        \\</ul>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -536,7 +566,13 @@ test "ordered list (1., 1., 1.)" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><ol><li>list item 1</li><li>list item 2</li><li>list item 3</li></ol></main>
+        \\<main>
+        \\<ol>
+        \\  <li>list item 1</li>
+        \\  <li>list item 2</li>
+        \\  <li>list item 3</li>
+        \\</ol>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -553,6 +589,37 @@ test "ordered list (1., 1., 1.)" {
     try expectEqualStrings(html, parsed);
 }
 
+test "ordered list (1., 2., 3.)" {
+    const html =
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<head>
+        \\  <meta charset="utf8">
+        \\</head>
+        \\<body>
+        \\<main>
+        \\<ol>
+        \\  <li>list item 1</li>
+        \\  <li>list item 2</li>
+        \\  <li>list item 3</li>
+        \\</ol>
+        \\</main>
+        \\</body>
+        \\</html>
+        \\
+    ;
+
+    const md =
+        \\1. list item 1
+        \\2. list item 2
+        \\3. list item 3
+    ;
+
+    const parsed = try zmd.parse(allocator, md, .{});
+    defer allocator.free(parsed);
+    try expectEqualStrings(html, parsed);
+}
+
 test "list with embedded elements" {
     const html =
         \\<!DOCTYPE html>
@@ -561,7 +628,13 @@ test "list with embedded elements" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><ul><li>list item with <a href="https://www.example.com/">my link</a></li><li>list item with <img src="https://www.example.com/image.png" title="my image" /></li><li>list item with <b>bold</b> and <i>italic</i> text</li></ul></main>
+        \\<main>
+        \\<ul>
+        \\  <li>list item with <a href="https://www.example.com/">my link</a></li>
+        \\  <li>list item with <img src="https://www.example.com/image.png" title="my image"></li>
+        \\  <li>list item with <b>bold</b> and <i>italic</i> text</li>
+        \\</ul>
+        \\</main>
         \\</body>
         \\</html>
         \\

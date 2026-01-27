@@ -12,21 +12,22 @@ test "parse markdown and translate to HTML" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h1>Header</h1>
+        \\<main>
+        \\<h1>Header</h1>
         \\<h2>Sub-header</h2>
         \\<h3>Sub-sub-header</h3>
-        \\
         \\<p>some text in <b>bold</b> and <i>italic</i></p>
-        \\
         \\<p>a paragraph</p>
-        \\
         \\<p>a link: <a href="https://ziglang.org/">my link</a></p>
-        \\
-        \\<p>an image: <img src="https://www.jetzig.dev/jetzig.png" title="jetzig logo" /></p>
-        \\<pre class="language-zig" style="font-family: Monospace;"><code>if (1 &lt; 10) {
+        \\<p>an image: <img src="https://www.jetzig.dev/jetzig.png" title="jetzig logo"></p>
+        \\<pre class="language-zig" style="font-family: Monospace;">
+        \\<code>
+        \\if (1 &lt; 10) {
         \\    std.debug.print("1 is &lt; 10 !");
-        \\}</code></pre>
-        \\<p>some more text with a <span style="font-family: Monospace">code</span> fragment</p>
+        \\}
+        \\</code>
+        \\</pre>
+        \\<p>some more text with a <span style="font-family: Monospace;">code</span> fragment</p>
         \\</main>
         \\</body>
         \\</html>
@@ -68,7 +69,8 @@ test "parse content without trailing linebreak before eof" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h1>Header</h1>
+        \\<main>
+        \\<h1>Header</h1>
         \\</main>
         \\</body>
         \\</html>
@@ -92,8 +94,8 @@ test "parse paragraph leading with a token" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><h1>Header</h1>
-        \\
+        \\<main>
+        \\<h1>Header</h1>
         \\<p><b>bold</b> text at the start of a paragraph</p>
         \\</main>
         \\</body>
@@ -120,7 +122,13 @@ test "parse indented list" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><ul><li>foo</li><li>bar</li><li>baz</li></ul></main>
+        \\<main>
+        \\<ul>
+        \\  <li>foo</li>
+        \\  <li>bar</li>
+        \\  <li>baz</li>
+        \\</ul>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -145,7 +153,13 @@ test "parse underscores in code element" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><ul><li><span style="font-family: Monospace">foo_bar</span></li><li><span style="font-family: Monospace">baz_qux</span></li><li><span style="font-family: Monospace">quux_corge</span></li></ul></main>
+        \\<main>
+        \\<ul>
+        \\  <li><span style="font-family: Monospace;">foo_bar</span></li>
+        \\  <li><span style="font-family: Monospace;">baz_qux</span></li>
+        \\  <li><span style="font-family: Monospace;">quux_corge</span></li>
+        \\</ul>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -220,7 +234,13 @@ test "parse underscores in block" {
         \\  <meta charset="utf8">
         \\</head>
         \\<body>
-        \\<main><pre class="language-zig" style="font-family: Monospace;"><code>if (foo_bar_baz) return true;</code></pre></main>
+        \\<main>
+        \\<pre class="language-zig" style="font-family: Monospace;">
+        \\<code>
+        \\if (foo_bar_baz) return true;
+        \\</code>
+        \\</pre>
+        \\</main>
         \\</body>
         \\</html>
         \\
@@ -244,7 +264,10 @@ test "parse repeated whitespace" {
 }
 
 fn newH1(alloc: std.mem.Allocator, node: Node) ![]const u8 {
-    return std.fmt.allocPrint(alloc, "<h0>{s}</h0>", .{node.content});
+    return std.fmt.allocPrint(alloc,
+        \\<h0>{s}</h0>
+        \\
+    , .{node.content});
 }
 
 fn newRoot(alloc: std.mem.Allocator, node: Node) ![]const u8 {
