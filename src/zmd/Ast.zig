@@ -227,6 +227,18 @@ fn firstToken(self: *Ast, previous_token: ?Token, index: usize) ?Token {
             };
     }
 
+    // Ordered list items: any digits followed by ". "
+    if (index_clear and std.ascii.isDigit(self.input[index])) {
+        var end = index + 1;
+        while (end < self.input.len and std.ascii.isDigit(self.input[end])) : (end += 1) {}
+        if (end + 2 <= self.input.len and self.input[end] == '.' and self.input[end + 1] == ' ')
+            return .{
+                .element = .{ .type = .ordered_list_item, .close = .linebreak, .clear = true },
+                .start = index,
+                .end = end + 2,
+            };
+    }
+
     return null;
 }
 

@@ -336,7 +336,7 @@ test "code (embedded)" {
         \\</head>
         \\<body>
         \\<main>
-        \\<p>some <span style="font-family: Monospace">code</span> text</p>
+        \\<p>some <span style="font-family: Monospace;">code</span> text</p>
         \\</main>
         \\</body>
         \\</html>

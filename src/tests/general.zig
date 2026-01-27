@@ -278,6 +278,7 @@ fn newRoot(alloc: std.mem.Allocator, node: Node) ![]const u8 {
 test "custom handler func" {
     const html =
         \\<h0>Hello</h0>
+        \\
     ;
 
     const md = "# Hello";
