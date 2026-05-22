@@ -1,6 +1,6 @@
 const std = @import("std");
 const allocator = std.testing.allocator;
-const zmd = @import("../zmd.zig");
+const zmd = @import("../root.zig");
 const Node = @import("../zmd/Node.zig");
 const expectEqualStrings = std.testing.expectEqualStrings;
 

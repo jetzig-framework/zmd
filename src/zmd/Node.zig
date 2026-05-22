@@ -3,7 +3,7 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const tokens = @import("tokens.zig");
 const Node = @This();
-const Formatters = @import("Formatters.zig");
+const Config = @import("Config.zig");
 const Writer = std.Io.Writer;
 
 token: tokens.Token,
@@ -21,16 +21,17 @@ pub fn toHtml(
     input: []const u8,
     writer: *Writer,
     level: usize,
-    formatters: Formatters,
+    config: Config,
 ) !void {
     const token_type = self.token.element.type;
-    const formatter: ?*const Formatters.Handler = switch (token_type) {
+    const Fn: ?Config.Fn = switch (token_type) {
         .linebreak, .none, .eof => null,
-        .paragraph => if (level == 1)
-            &getHandlerComptime(formatters, "paragraph")
-        else
-            &getHandlerComptime(formatters, "text"),
-        inline else => |element_type| &getHandlerComptime(formatters, @tagName(element_type)),
+        .paragraph => if (level == 1) config.paragraph
+            // &getHandlerComptime(config, "paragraph")
+        else config.text,
+        // &getHandlerComptime(config, "text"),
+
+        inline else => |element_type| getHandlerComptime(config, @tagName(element_type)),
     };
 
     var allocating: Writer.Allocating = .init(allocator);
@@ -65,7 +66,7 @@ pub fn toHtml(
             input,
             &allocating.writer,
             level + 1,
-            formatters,
+            config,
         );
     }
 
@@ -78,21 +79,21 @@ pub fn toHtml(
     else
         try allocating.toOwnedSlice();
 
-    if (formatter) |handler_func| {
-        const html_string = try handler_func(allocator, self.*);
+    if (Fn) |func| {
+        const html_string = try func(allocator, self.*);
         defer allocator.free(html_string);
         try writer.writeAll(html_string);
     }
 }
 
 pub fn getHandlerComptime(
-    formatters: Formatters,
+    config: Config,
     comptime element_type: []const u8,
-) Formatters.Handler {
-    return if (@hasField(Formatters, element_type))
-        @field(formatters, element_type)
+) Config.Fn {
+    return if (@hasField(Config, element_type))
+        @field(config, element_type)
     else
-        formatters.default;
+        config.text;
 }
 
 fn escape(allocator: Allocator, input: []const u8) ![]const u8 {

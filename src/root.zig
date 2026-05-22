@@ -7,12 +7,12 @@ const Writer = std.Io.Writer;
 pub const Node = @import("zmd/Node.zig");
 pub const Ast = @import("zmd/Ast.zig");
 pub const tokens = @import("zmd/tokens.zig");
-pub const Formatters = @import("zmd/Formatters.zig");
+pub const Config = @import("zmd/Config.zig");
 
 pub fn parse(
     allocator: Allocator,
     input: []const u8,
-    formatters: Formatters,
+    config: Config,
 ) ![]const u8 {
     var arena: ArenaAllocator = .init(allocator);
     defer arena.deinit();
@@ -35,7 +35,7 @@ pub fn parse(
         normalized,
         &aw.writer,
         0,
-        formatters,
+        config,
     );
 
     return allocator.dupe(u8, try aw.toOwnedSlice());
@@ -46,7 +46,6 @@ pub fn parse(
 fn normalizeInput(allocator: Allocator, input: []const u8) ![]const u8 {
     const output = try std.mem.replaceOwned(u8, allocator, input, "\r\n", "\n");
     if (std.mem.endsWith(u8, output, "\n")) return output;
-
     return std.mem.concat(allocator, u8, &[_][]const u8{ output, "\n" });
 }
 

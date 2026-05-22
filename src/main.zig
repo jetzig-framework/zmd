@@ -1,9 +1,8 @@
 const std = @import("std");
-const Zmd = @import("zmd/Zmd.zig");
+const zmd = @import("root.zig");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    var gpa = init.gpa;
 
     const markdown =
         \\# Header
@@ -22,9 +21,11 @@ pub fn main() !void {
         \\some more text with a `code` fragment
     ;
 
-    const html = try Zmd.parse(allocator, markdown, .{});
-    defer allocator.free(html);
+    const html = try zmd.parse(gpa, markdown, .{});
+    defer gpa.free(html);
 
-    const stdout = std.fs.File.stdout();
-    try stdout.writeAll(html);
+    const stdout: std.Io.File = .stdout();
+    var buf: [256]u8 = undefined;
+    var writer = stdout.writer(init.io, &buf);
+    try writer.interface.writeAll(html);
 }

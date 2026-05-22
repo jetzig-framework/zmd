@@ -74,6 +74,7 @@ pub const toggles = std.StaticStringMap(Element).initComptime(
 );
 
 pub const formatters = [_]Element{
+    .{ .type = .bold, .syntax = "__", .close = .bold_close },
     .{ .type = .bold, .syntax = "**", .close = .bold_close },
     .{ .type = .italic, .syntax = "_", .close = .italic_close },
     .{ .type = .italic, .syntax = "*", .close = .italic_close },
