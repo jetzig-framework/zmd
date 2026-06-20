@@ -2,26 +2,17 @@ const std = @import("std");
 const zmd = @import("root.zig");
 
 pub fn main(init: std.process.Init) !void {
-    const markdown =
-        \\# Header
-        \\## Sub-header
-        \\### Sub-sub-header
-        \\
-        \\some text in **bold** and _italic_
-        \\
-        \\a paragraph
-        \\
-        \\```
-        \\some code
-        \\some more code in the same block
-        \\and yet more code
-        \\```
-        \\some more text with a `code` fragment
-        \\- list item
-        \\  1. ordered item
-    ;
+    var file = try std.Io.Dir.cwd().openFile(init.io, "README.md", .{});
+    var buffer: [256]u8 = undefined;
     const stdout: std.Io.File = .stdout();
+    var reader = file.reader(init.io, &buffer);
+
     var buf: [256]u8 = undefined;
     var writer = stdout.writer(init.io, &buf);
-    try zmd.parseSlice(markdown, &writer.interface, .{});
+
+    const start: std.Io.Timestamp = .now(init.io, .awake);
+    try zmd.parse(&reader.interface, &writer.interface, .{});
+    const duration = start.untilNow(init.io, .awake);
+    try duration.format(&writer.interface);
+    try writer.flush();
 }

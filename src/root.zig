@@ -31,17 +31,6 @@ pub fn parseAlloc(allocator: Allocator, input: []const u8, config: Config) ![]u8
     return aw.toOwnedSlice();
 }
 
-pub fn parseFile(reader: File.Reader, writer: *Writer, config: Config) !void {
-    try parse(&reader.interface, writer, config);
-}
-
-pub fn parseFileAlloc(allocator: Allocator, reader: File.Reader, config: Config) ![]u8 {
-    var aw: Writer.Allocating = .init(allocator);
-    defer aw.deinit();
-    try parse(&reader.interface, &aw.writer, config);
-    return aw.toOwnedSlice();
-}
-
 test {
     _ = @import("tests/general.zig");
     _ = @import("tests/elements.zig");

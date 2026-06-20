@@ -4,16 +4,19 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const smoke = b.step("smoke", "Run smoke test");
-    const smoke_test = b.addExecutable(.{
-        .name = "smoke_test",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    smoke.dependOn(&b.addRunArtifact(smoke_test).step);
+    const benchmark = b.step("benchmark", "Run benchmark");
+    benchmark.dependOn(
+        &b.addRunArtifact(
+            b.addExecutable(.{
+                .name = "smoke_test",
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("src/main.zig"),
+                    .target = target,
+                    .optimize = optimize,
+                }),
+            }),
+        ).step,
+    );
 
     const zmd_mod = b.addModule("zmd", .{
         .root_source_file = b.path("src/root.zig"),
