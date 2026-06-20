@@ -1,7 +1,8 @@
 const std = @import("std");
+const Writer = std.Io.Writer;
 const allocator = std.testing.allocator;
 const zmd = @import("../root.zig");
-const Node = @import("../zmd/Node.zig");
+const Node = @import("../Parser.zig").Node;
 const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "parse markdown and translate to HTML" {
@@ -20,7 +21,7 @@ test "parse markdown and translate to HTML" {
         \\<p>a paragraph</p>
         \\<p>a link: <a href="https://ziglang.org/">my link</a></p>
         \\<p>an image: <img src="https://www.jetzig.dev/jetzig.png" title="jetzig logo"></p>
-        \\<pre class="language-zig" style="font-family: Monospace;">
+        \\<pre style="font-family: Monospace;" class="language-zig">
         \\<code>
         \\if (1 &lt; 10) {
         \\    std.debug.print("1 is &lt; 10 !");
@@ -56,7 +57,7 @@ test "parse markdown and translate to HTML" {
         \\
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -81,7 +82,7 @@ test "parse content without trailing linebreak before eof" {
         \\# Header
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -109,7 +110,7 @@ test "parse paragraph leading with a token" {
         \\**bold** text at the start of a paragraph
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -140,7 +141,7 @@ test "parse indented list" {
         \\  * baz
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -171,7 +172,7 @@ test "parse underscores in code element" {
         \\* `quux_corge`
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -196,7 +197,7 @@ test "parse parentheses in paragraph" {
         \\some text (with parentheses) in a paragraph
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -221,7 +222,7 @@ test "parse underscore in link" {
         \\a _link_ to [here_doc](https://en.wikipedia.org/wiki/Here_document) with _italics_ and **bold**
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
@@ -235,7 +236,7 @@ test "parse underscores in block" {
         \\</head>
         \\<body>
         \\<main>
-        \\<pre class="language-zig" style="font-family: Monospace;">
+        \\<pre style="font-family: Monospace;" class="language-zig">
         \\<code>
         \\if (foo_bar_baz) return true;
         \\</code>
@@ -252,27 +253,30 @@ test "parse underscores in block" {
         \\```
     ;
 
-    const parsed = try zmd.parse(allocator, md, .{});
+    const parsed = try zmd.parseAlloc(allocator, md, .{});
     defer allocator.free(parsed);
     try expectEqualStrings(html, parsed);
 }
 
 test "parse repeated whitespace" {
     // Used to be really slow
-    const parsed = try zmd.parse(allocator, " " ** 40_000, .{});
+    const parsed = try zmd.parseAlloc(allocator, " " ** 40_000, .{});
     allocator.free(parsed);
 }
 
-fn newH1(alloc: std.mem.Allocator, node: Node) ![]const u8 {
-    return std.fmt.allocPrint(alloc,
-        \\<h0>{s}</h0>
-        \\
-    , .{node.content});
+fn newH1(writer: *Writer, node: Node) Writer.Error![]const u8 {
+    _ = node;
+    try writer.writeAll("<h0>");
+    return
+    \\</h0>
+    \\
+    ;
 }
 
-fn newRoot(alloc: std.mem.Allocator, node: Node) ![]const u8 {
-    _ = alloc;
-    return node.content;
+fn newRoot(writer: *Writer, node: Node) Writer.Error![]const u8 {
+    _ = writer;
+    _ = node;
+    return "";
 }
 
 test "custom handler func" {
@@ -283,7 +287,7 @@ test "custom handler func" {
 
     const md = "# Hello";
 
-    const parsed = try zmd.parse(allocator, md, .{
+    const parsed = try zmd.parseAlloc(allocator, md, .{
         .h1 = newH1,
         .root = newRoot,
     });

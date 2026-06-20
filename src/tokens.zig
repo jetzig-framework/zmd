@@ -18,6 +18,8 @@ pub const ElementType = enum {
     block_close,
     code,
     code_close,
+    ref,
+    ref_close,
     image,
     link,
     image_title,
@@ -55,6 +57,7 @@ pub const elements = [_]Element{
     .{ .type = .h1, .syntax = "#", .close = .linebreak, .trim = true, .clear = true },
     .{ .type = .block, .syntax = "```", .close = .block_close, .clear = true },
     .{ .type = .code, .syntax = "`", .close = .code_close },
+    .{ .type = .ref, .syntax = "{{", .close = .ref_close },
     .{ .type = .image_title, .syntax = "![", .close = .title_close },
     .{ .type = .link_title, .syntax = "[", .close = .title_close },
     .{ .type = .title_close, .syntax = "]" },
@@ -63,13 +66,13 @@ pub const elements = [_]Element{
     .{ .type = .unordered_list_item, .syntax = "+ ", .close = .linebreak, .clear = true },
     .{ .type = .unordered_list_item, .syntax = "* ", .close = .linebreak, .clear = true },
     .{ .type = .unordered_list_item, .syntax = "- ", .close = .linebreak, .clear = true },
-    // .{ .type = .ordered_list_item, .syntax = "1. ", .close = .linebreak, .clear = true },
 };
 
 pub const toggles = std.StaticStringMap(Element).initComptime(
     .{
         .{ "code", Element{ .type = .code_close, .syntax = "`" } },
         .{ "block", Element{ .type = .block_close, .syntax = "```" } },
+        .{ "ref", Element{ .type = .ref_close, .syntax = "}}" } },
     },
 );
 

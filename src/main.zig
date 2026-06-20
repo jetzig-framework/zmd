@@ -2,8 +2,6 @@ const std = @import("std");
 const zmd = @import("root.zig");
 
 pub fn main(init: std.process.Init) !void {
-    var gpa = init.gpa;
-
     const markdown =
         \\# Header
         \\## Sub-header
@@ -19,13 +17,11 @@ pub fn main(init: std.process.Init) !void {
         \\and yet more code
         \\```
         \\some more text with a `code` fragment
+        \\- list item
+        \\  1. ordered item
     ;
-
-    const html = try zmd.parse(gpa, markdown, .{});
-    defer gpa.free(html);
-
     const stdout: std.Io.File = .stdout();
     var buf: [256]u8 = undefined;
     var writer = stdout.writer(init.io, &buf);
-    try writer.interface.writeAll(html);
+    try zmd.parseSlice(markdown, &writer.interface, .{});
 }
