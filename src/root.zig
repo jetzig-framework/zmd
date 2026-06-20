@@ -5,6 +5,7 @@ const Writer = Io.Writer;
 const Reader = Io.Reader;
 const File = Io.File;
 const Parser = @import("Parser.zig");
+pub const Node = Parser.Node;
 
 pub const Config = @import("Config.zig");
 
