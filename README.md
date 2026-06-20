@@ -15,6 +15,7 @@ _Zmd_ is used by the [Jetzig web framework](https://www.jetzig.dev/).
 * Fenced code blocks (with info string)
 * Ordered lists
 * Unordered lists
+* template blocks (`{{...}}`)
 
 ## Usage
 
@@ -22,31 +23,43 @@ _Zmd_ is used by the [Jetzig web framework](https://www.jetzig.dev/).
 const std = @import("std");
 const zmd = @import("zmd");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const markdown =
+        \\# Header
+        \\## Sub-header
+        \\### Sub-sub-header
+        \\
+        \\some text in **bold** and _italic_
+        \\
+        \\a paragraph
+        \\
+        \\```
+        \\some code
+        \\some more code in the same block
+        \\and yet more code
+        \\```
+        \\some more text with a `code` fragment
+        \\- list item
+        \\  1. ordered item
+    ;
 
-    const markdown = "# Header";
-
-    const html = try zmd.parse(allocator, markdown, .{});
-    defer allocator.free(html);
-
-    const stdout = std.fs.File.stdout();
-    try stdout.writeAll(html);
+    const stdout: std.Io.File = .stdout();
+    var buf: [256]u8 = undefined;
+    var writer = stdout.writer(init.io, &buf);
+    try zmd.parseSlice(markdown, &writer.interface, .{});
 }
 ```
 
 ### Customization
 Formatter for supported markdown elements can be overridden with fuctions:
 ```zig
-const html = zmd.parse(alloc, markdown, .{
+const html = zmd.parseAlloc(alloc, markdown, .{
     .block = myBlock,
 })
-
 ```
-The function signature for formatters is `fn (Allocator, Node) ![]const u8`
+The function signature for formatters is `fn (*Writer, Node) !void`
 
-Some node types provie special attributes such as:
+Node provides special attributes such as:
 
 * `meta` - provided on `block` elements. This is the language specifier (`zig`) in this example:
 ```zig
@@ -54,22 +67,37 @@ if (true) std.debug.print("some zig code");
 ```
 * `href`, `title` - provided on `image` and `link` elements.
 
-```zig
-fn myBlock(allocator: std.mem.Allocator, node: zmd.Node) ![]const u8 {
-    const style = "font-family: Monospace;";
 
-    return if (node.meta) |meta|
-        std.fmt.allocPrint(allocator,
-            \\<pre class="language-{s}" style="{s}"><code>{s}</code></pre>
-        , .{ meta, style, node.content })
-    else
-        std.fmt.allocPrint(allocator,
-            \\<pre style="{s}"><code>{s}</code></pre>
-        , .{ style, node.content });
+
+```zig
+fn myBlock(writer: *Writer, node: zmd.Node) !void {
+    // writer writes opening string
+    try writer.writeAll(
+        \\<pre style="font-family: Monospace;"
+    );
+    if (node.meta) |meta|
+        try writer.print(
+            \\ class="language-{s}"
+        , .{meta});
+    try writer.writeAll(
+        \\>
+        \\<code>
+        \\
+    );
+
+    // content is parsed and written
+
+    // closing string
+    return
+    \\
+    \\</code>
+    \\</pre>
+    \\
+    ;
 }
 ```
 
-See [src/zmd/Formatters.zig](src/zmd/Formatters.zig) for the full reference.
+See [Config.zig](./src/Config.zig) for the full reference.
 
 ## License
 
