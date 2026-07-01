@@ -1,222 +1,145 @@
 const std = @import("std");
-const Node = @import("Parser.zig").Node;
-const Config = @This();
-const Allocator = std.mem.Allocator;
 const Writer = std.Io.Writer;
-pub const Fn = *const fn (*Writer, Node) anyerror![]const u8;
 
-root: Fn = Default.root,
-block: Fn = Default.block,
-link: Fn = Default.link,
-image: Fn = Default.image,
-h1: Fn = Default.h1,
-h2: Fn = Default.h2,
-h3: Fn = Default.h3,
-h4: Fn = Default.h4,
-h5: Fn = Default.h5,
-h6: Fn = Default.h6,
-bold: Fn = Default.bold,
-italic: Fn = Default.italic,
-unordered_list: Fn = Default.unorderedList,
-ordered_list: Fn = Default.orderedList,
-list_item: Fn = Default.listItem,
-code: Fn = Default.code,
-paragraph: Fn = Default.paragraph,
-text: Fn = Default.text,
-ref: Fn = Default.ref,
+const Config = @This();
 
-pub fn jinjaRef(writer: *Writer, _: Node) anyerror![]const u8 {
-    try writer.writeAll("{%");
-    return "%}";
-}
+root: Tag = .{
+    .opening =
+    \\<!DOCTYPE html>
+    \\<html>
+    \\<head>
+    \\  <meta charset="utf8">
+    \\</head>
+    \\<body>
+    \\<main>
+    \\
+    ,
+    .closing =
+    \\</main>
+    \\</body>
+    \\</html>
+    \\
+    ,
+},
+block: Tag = .{
+    .opening =
+    \\<pre style="font-family: Monospace;" class="language-{[language]s}">
+    \\<code>
+    \\
+    ,
+    .closing =
+    \\
+    \\</code>
+    \\</pre>
+    \\
+    ,
+},
+link: Tag = .{
+    .opening =
+    \\<a href="{[href]s}">
+    ,
+    .closing = "</a>",
+},
+image: Tag = .{
+    .opening =
+    \\<img src="{[href]s}" title="
+    ,
+    .closing =
+    \\">
+    ,
+},
+h1: Tag = .{ .opening = "<h1>", .closing = "</h1>\n" },
+h2: Tag = .{ .opening = "<h2>", .closing = "</h2>\n" },
+h3: Tag = .{ .opening = "<h3>", .closing = "</h3>\n" },
+h4: Tag = .{ .opening = "<h4>", .closing = "</h4>\n" },
+h5: Tag = .{ .opening = "<h5>", .closing = "</h5>\n" },
+h6: Tag = .{ .opening = "<h6>", .closing = "</h6>\n" },
+bold: Tag = .{ .opening = "<b>", .closing = "</b>" },
+italic: Tag = .{ .opening = "<i>", .closing = "</i>" },
+unordered_list: Tag = .{ .opening = "<ul>\n", .closing = "</ul>\n" },
+ordered_list: Tag = .{ .opening = "<ol>\n", .closing = "</ol>\n" },
+list_item: Tag = .{ .opening = "  <li>", .closing = "</li>\n" },
+code: Tag = .{
+    .opening =
+    \\<span style="font-family: Monospace;">
+    ,
+    .closing = "</span>",
+},
+paragraph: Tag = .{ .opening = "<p>", .closing = "</p>\n" },
+text: Tag = .{ .opening = "", .closing = "" },
+ref: Tag = .handlebars_ref,
 
-pub const default: Config = .{
-    .root = Default.root,
-    .block = Default.block,
-    .link = Default.link,
-    .image = Default.image,
-    .h1 = Default.h1,
-    .h2 = Default.h2,
-    .h3 = Default.h3,
-    .h4 = Default.h4,
-    .h5 = Default.h5,
-    .h6 = Default.h6,
-    .bold = Default.bold,
-    .italic = Default.italic,
-    .unordered_list = Default.unorderedList,
-    .ordered_list = Default.orderedList,
-    .list_item = Default.listItem,
-    .code = Default.code,
-    .paragraph = Default.paragraph,
-    .text = Default.text,
-    .ref = Default.ref,
+pub const Tag = struct {
+    opening: []const u8,
+    closing: []const u8,
+
+    pub const jinja_ref: Tag = .{ .opening = "{%", .closing = "%}" };
+    pub const handlebars_ref: Tag = .{ .opening = "{{", .closing = "}}" };
 };
 
-const Default = struct {
-    pub fn root(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll(
-            \\<!DOCTYPE html>
-            \\<html>
-            \\<head>
-            \\  <meta charset="utf8">
-            \\</head>
-            \\<body>
-            \\<main>
-            \\
-        );
-        return
-        \\</main>
-        \\</body>
-        \\</html>
-        \\
-        ;
+pub fn write(self: Config, field: Field, writer: *Writer, node: Node) ![]const u8 {
+    const tag: Tag = switch (field) {
+        .root => self.root,
+        .block => self.block,
+        .link => self.link,
+        .image => self.image,
+        .h1 => self.h1,
+        .h2 => self.h2,
+        .h3 => self.h3,
+        .h4 => self.h4,
+        .h5 => self.h5,
+        .h6 => self.h6,
+        .unordered_list => self.unordered_list,
+        .ordered_list => self.ordered_list,
+        .list_item => self.list_item,
+        .bold => self.bold,
+        .italic => self.italic,
+        .code => self.code,
+        .text => self.text,
+        .paragraph => self.paragraph,
+        .ref => self.ref,
+    };
+    switch (field) {
+        .block => try writeTag(writer, tag.opening, "{[language]s}", node.language orelse ""),
+        .link, .image => try writeTag(writer, tag.opening, "{[href]s}", node.href orelse ""),
+        else => try writer.writeAll(tag.opening),
     }
+    return tag.closing;
+}
 
-    pub fn block(writer: *Writer, node: Node) ![]const u8 {
-        try writer.writeAll(
-            \\<pre style="font-family: Monospace;"
-        );
-        if (node.meta) |meta|
-            try writer.print(
-                \\ class="language-{s}"
-            , .{meta});
-        try writer.writeAll(
-            \\>
-            \\<code>
-            \\
-        );
-        return
-        \\
-        \\</code>
-        \\</pre>
-        \\
-        ;
-    }
+fn writeTag(writer: *Writer, opening: []const u8, placeholder: []const u8, value: []const u8) !void {
+    const index = std.mem.indexOf(u8, opening, placeholder) orelse {
+        try writer.writeAll(opening);
+        return;
+    };
+    try writer.writeAll(opening[0..index]);
+    try writer.writeAll(value);
+    try writer.writeAll(opening[index + placeholder.len ..]);
+}
 
-    pub fn link(writer: *Writer, node: Node) ![]const u8 {
-        try writer.print(
-            \\<a href="{s}">
-        , .{node.href.?});
-        return "</a>";
-    }
+pub const Node = struct {
+    language: ?[]const u8 = null,
+    href: ?[]const u8 = null,
+};
 
-    pub fn image(writer: *Writer, node: Node) ![]const u8 {
-        try writer.print(
-            \\<img src="{s}" title="
-        , .{node.href.?});
-        return "\">";
-    }
-
-    pub fn h1(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<h1>");
-        return
-        \\</h1>
-        \\
-        ;
-    }
-
-    pub fn h2(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<h2>");
-        return
-        \\</h2>
-        \\
-        ;
-    }
-
-    pub fn h3(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<h3>");
-        return
-        \\</h3>
-        \\
-        ;
-    }
-
-    pub fn h4(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<h4>");
-        return
-        \\</h4>
-        \\
-        ;
-    }
-
-    pub fn h5(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<h5>");
-        return
-        \\</h5>
-        \\
-        ;
-    }
-
-    pub fn h6(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<h6>");
-        return
-        \\</h6>
-        \\
-        ;
-    }
-
-    pub fn bold(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<b>");
-        return "</b>";
-    }
-
-    pub fn italic(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<i>");
-        return "</i>";
-    }
-
-    pub fn unorderedList(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll(
-            \\<ul>
-            \\
-        );
-        return
-        \\</ul>
-        \\
-        ;
-    }
-
-    pub fn orderedList(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll(
-            \\<ol>
-            \\
-        );
-        return
-        \\</ol>
-        \\
-        ;
-    }
-
-    pub fn listItem(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("  <li>");
-        return
-        \\</li>
-        \\
-        ;
-    }
-
-    pub fn code(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll(
-            \\<span style="font-family: Monospace;">
-        );
-
-        return "</span>";
-    }
-
-    pub fn paragraph(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("<p>");
-        return
-        \\</p>
-        \\
-        ;
-    }
-
-    pub fn text(_: *Writer, _: Node) ![]const u8 {
-        return "";
-    }
-
-    pub fn ref(writer: *Writer, _: Node) ![]const u8 {
-        try writer.writeAll("{{");
-        return "}}";
-    }
+pub const Field = enum {
+    root,
+    block,
+    link,
+    image,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    unordered_list,
+    ordered_list,
+    list_item,
+    bold,
+    italic,
+    code,
+    text,
+    paragraph,
+    ref,
 };

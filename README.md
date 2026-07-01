@@ -51,53 +51,17 @@ pub fn main(init: std.process.Init) !void {
 ```
 
 ### Customization
-Formatter for supported markdown elements can be overridden with fuctions:
+
+The HTML output for each markdown element is defined by a `Tag` - a pair of `opening` and `closing` strings. The default tags are in [Config.zig](./src/Config.zig).
+
+Tags can be overridden at runtime by passing a `Config` value to the parse functions. Individual tags not specified fall back to the configured defaults:
+
 ```zig
 const html = zmd.parseAlloc(alloc, markdown, .{
-    .block = myBlock,
-})
+    .h1 = .{ .opening = "<h1 class=\"title\">", .closing = "</h1>\n" },
+    .block = .{ .opening = "<pre><code>", .closing = "</code></pre>\n" },
+});
 ```
-The function signature for formatters is `fn (*Writer, Node) !void`
-
-Node provides special attributes such as:
-
-* `meta` - provided on `block` elements. This is the language specifier (`zig`) in this example:
-```zig
-if (true) std.debug.print("some zig code");
-```
-* `href`, `title` - provided on `image` and `link` elements.
-
-
-
-```zig
-fn myBlock(writer: *Writer, node: zmd.Node) !void {
-    // writer writes opening string
-    try writer.writeAll(
-        \\<pre style="font-family: Monospace;"
-    );
-    if (node.meta) |meta|
-        try writer.print(
-            \\ class="language-{s}"
-        , .{meta});
-    try writer.writeAll(
-        \\>
-        \\<code>
-        \\
-    );
-
-    // content is parsed and written
-
-    // closing string
-    return
-    \\
-    \\</code>
-    \\</pre>
-    \\
-    ;
-}
-```
-
-See [Config.zig](./src/Config.zig) for the full reference.
 
 ## License
 

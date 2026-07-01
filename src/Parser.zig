@@ -1,13 +1,31 @@
 const Parser = @This();
 
+const std = @import("std");
+const Reader = std.Io.Reader;
+const Writer = std.Io.Writer;
+const Config = @import("Config.zig");
+const Node = Config.Node;
+const whitespace = std.ascii.whitespace;
+const max_list_depth = 16;
+const ListKind = enum { unordered, ordered };
+
 reader: *Reader,
 writer: *Writer,
 config: Config,
 levels: [max_list_depth]Level = undefined,
 depth: usize = 0,
 
+const Level = struct {
+    indent: usize,
+    kind: ListKind,
+    list_close: []const u8,
+    item_close: []const u8,
+    item_open: bool,
+    has_children: bool,
+};
+
 pub fn run(self: *Parser) !void {
-    const root_close = try self.config.root(self.writer, .{});
+    const root_close = try self.config.write(.root, self.writer, .{});
 
     while (try self.nextLine()) |raw| {
         const line = stripNewline(raw);
@@ -60,32 +78,31 @@ fn nextLine(self: *Parser) !?[]const u8 {
 
 fn render(
     self: *Parser,
-    comptime element: ElementType,
+    comptime element: Config.Field,
     content: []const u8,
 ) !void {
-    const formatter: Config.Fn = @field(self.config, @tagName(element));
-    const close = try formatter(self.writer, .{});
+    const close = try self.config.write(element, self.writer, .{});
     try self.renderInline(content);
     if (close.len > 0) try self.writer.writeAll(close);
 }
 
 fn renderHeading(self: *Parser, level: usize, content: []const u8) !void {
-    const formatter = switch (level) {
-        1 => self.config.h1,
-        2 => self.config.h2,
-        3 => self.config.h3,
-        4 => self.config.h4,
-        5 => self.config.h5,
-        else => self.config.h6,
+    const field: Config.Field = switch (level) {
+        1 => .h1,
+        2 => .h2,
+        3 => .h3,
+        4 => .h4,
+        5 => .h5,
+        else => .h6,
     };
-    const close = try formatter(self.writer, .{});
+    const close = try self.config.write(field, self.writer, .{});
     try self.renderInline(content);
     if (close.len > 0) try self.writer.writeAll(close);
 }
 
 fn renderBlock(self: *Parser, meta: []const u8) !void {
-    const node_value: Node = .{ .meta = if (meta.len > 0) meta else null };
-    const close = try self.config.block(self.writer, node_value);
+    const node_value: Node = .{ .language = if (meta.len > 0) meta else null };
+    const close = try self.config.write(.block, self.writer, node_value);
 
     var started = false;
     while (try self.nextLine()) |raw| {
@@ -126,14 +143,11 @@ fn processListItem(self: *Parser, indent: usize, item: ListMatch) !void {
 fn pushList(self: *Parser, kind: ListKind, indent: usize) !void {
     const d = self.depth;
     try self.writeIndent(4 * d);
-    const formatter: Config.Fn = switch (kind) {
-        .ordered => self.config.ordered_list,
-        .unordered => self.config.unordered_list,
-    };
+    const field: Config.Field = if (kind == .ordered) .ordered_list else .unordered_list;
     self.levels[d] = .{
         .indent = indent,
         .kind = kind,
-        .list_close = try formatter(self.writer, .{}),
+        .list_close = try self.config.write(field, self.writer, .{}),
         .item_close = "",
         .item_open = false,
         .has_children = false,
@@ -144,7 +158,7 @@ fn pushList(self: *Parser, kind: ListKind, indent: usize) !void {
 fn writeItem(self: *Parser, content: []const u8) !void {
     const d = self.depth - 1;
     try self.writeIndent(4 * d);
-    const item_close = try self.config.list_item(self.writer, .{});
+    const item_close = try self.config.write(.list_item, self.writer, .{});
     try self.renderInline(content);
     self.levels[d].item_close = item_close;
     self.levels[d].item_open = true;
@@ -221,15 +235,14 @@ fn inlineDelimited(
     open: usize,
     pending: []const u8,
     comptime syntax: []const u8,
-    comptime element: ElementType,
+    comptime element: Config.Field,
     comptime recurse: bool,
 ) !?usize {
     const inner_start = open + syntax.len;
     const close = std.mem.indexOfPos(u8, s, inner_start, syntax) orelse
         return null;
     try writeEscaped(self.writer, pending);
-    const formatter: Config.Fn = @field(self.config, @tagName(element));
-    const close_tag = try formatter(self.writer, .{});
+    const close_tag = try self.config.write(element, self.writer, .{});
     if (recurse)
         try self.renderInline(s[inner_start..close])
     else
@@ -248,7 +261,7 @@ fn inlineRef(
     const close = std.mem.indexOfPos(u8, s, inner_start, "}}") orelse
         return null;
     try writeEscaped(self.writer, pending);
-    const close_tag = try self.config.ref(self.writer, .{});
+    const close_tag = try self.config.write(.ref, self.writer, .{});
     try self.writer.writeAll(s[inner_start..close]);
     if (close_tag.len > 0) try self.writer.writeAll(close_tag);
     return close + 2;
@@ -259,7 +272,7 @@ fn inlineLink(
     s: []const u8,
     open: usize,
     pending: []const u8,
-    comptime kind: ElementType,
+    comptime kind: Config.Field,
 ) !?usize {
     const bracket = if (kind == .image) open + 1 else open;
     const title_close = findBracketClose(s, bracket) orelse return null;
@@ -269,8 +282,7 @@ fn inlineLink(
 
     try writeEscaped(self.writer, pending);
     const node_value: Node = .{ .href = s[paren_open + 1 .. paren_close] };
-    const formatter: Config.Fn = if (kind == .image) self.config.image else self.config.link;
-    const close_tag = try formatter(self.writer, node_value);
+    const close_tag = try self.config.write(kind, self.writer, node_value);
     try self.renderInline(s[bracket + 1 .. title_close]);
     if (close_tag.len > 0) try self.writer.writeAll(close_tag);
     return paren_close + 1;
@@ -361,26 +373,3 @@ fn writeEscaped(writer: *Writer, input: []const u8) Writer.Error!void {
     }
     if (start < input.len) try writer.writeAll(input[start..]);
 }
-
-const std = @import("std");
-const Reader = std.Io.Reader;
-const Writer = std.Io.Writer;
-const Config = @import("Config.zig");
-const whitespace = std.ascii.whitespace;
-const tokens = @import("tokens.zig");
-const ElementType = tokens.ElementType;
-pub const Node = struct {
-    meta: ?[]const u8 = null,
-    href: ?[]const u8 = null,
-};
-
-const max_list_depth = 16;
-const ListKind = enum { unordered, ordered };
-const Level = struct {
-    indent: usize,
-    kind: ListKind,
-    list_close: []const u8,
-    item_close: []const u8,
-    item_open: bool,
-    has_children: bool,
-};

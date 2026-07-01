@@ -3,7 +3,12 @@
     .version = "0.2.0",
     .fingerprint = 0x3cab843fed15c61f,
     .minimum_zig_version = "0.16.0",
-    .dependencies = .{},
+    .dependencies = .{
+        .utils = .{
+            .url = "git+https://tangled.org/poecoh.com/utils#d3656b5b6dd79bee6910612e8d20224d120d0641",
+            .hash = "utils-0.0.0-XVWM07QZAADymcwovqIR2Oh32xzghAKT-njNj7bEbc-8",
+        },
+    },
     .paths = .{
         "",
     },

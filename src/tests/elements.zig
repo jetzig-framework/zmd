@@ -1,7 +1,6 @@
 const std = @import("std");
-const allocator = std.testing.allocator;
+const t = std.testing;
 const zmd = @import("../root.zig");
-const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "h1" {
     const html =
@@ -23,9 +22,9 @@ test "h1" {
         \\# Header
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "h2" {
@@ -48,9 +47,9 @@ test "h2" {
         \\## Header
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "h3" {
@@ -73,9 +72,9 @@ test "h3" {
         \\### Header
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "h4" {
@@ -97,9 +96,9 @@ test "h4" {
         \\#### Header
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "h5" {
@@ -122,9 +121,9 @@ test "h5" {
         \\##### Header
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "h6" {
@@ -147,9 +146,9 @@ test "h6" {
         \\###### Header
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "bold (dangling)" {
@@ -172,9 +171,9 @@ test "bold (dangling)" {
         \\**bold**
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "bold (embedded)" {
@@ -197,9 +196,9 @@ test "bold (embedded)" {
         \\some **bold** text
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "italic (dangling)" {
@@ -222,9 +221,9 @@ test "italic (dangling)" {
         \\_italic_
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "italic (embedded)" {
@@ -247,9 +246,9 @@ test "italic (embedded)" {
         \\some _italic_ text
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "italic with asterisks (dangling)" {
@@ -272,9 +271,9 @@ test "italic with asterisks (dangling)" {
         \\*italic*
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "italic with asterisks (embedded)" {
@@ -297,9 +296,9 @@ test "italic with asterisks (embedded)" {
         \\some *italic* text
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "code (dangling)" {
@@ -322,9 +321,9 @@ test "code (dangling)" {
         \\`code`
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "code (embedded)" {
@@ -347,9 +346,9 @@ test "code (embedded)" {
         \\some `code` text
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "block" {
@@ -382,9 +381,9 @@ test "block" {
         \\```
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "image" {
@@ -407,9 +406,9 @@ test "image" {
         \\![image title](https://example.com/image.png)
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "link" {
@@ -432,9 +431,9 @@ test "link" {
         \\[link title](https://example.com/)
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "dangling brackets (no href)" {
@@ -457,9 +456,9 @@ test "dangling brackets (no href)" {
         \\index [0] of array
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "passthrough ref ({{ ... }})" {
@@ -482,9 +481,9 @@ test "passthrough ref ({{ ... }})" {
         \\value is {{ $.user_name[0] < limit }} today
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "link with passthrough refs in title and href" {
@@ -509,9 +508,9 @@ test "link with passthrough refs in title and href" {
         \\[{{$.title}}]({{$.url}})
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "nested image inside link title" {
@@ -534,9 +533,9 @@ test "nested image inside link title" {
         \\[![alt](https://example.com/i.png)](https://example.com/)
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "paragraph" {
@@ -562,9 +561,9 @@ test "paragraph" {
         \\a paragraph
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "unordered list (+)" {
@@ -593,9 +592,9 @@ test "unordered list (+)" {
         \\+ list item 3
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "unordered list (-)" {
@@ -624,9 +623,9 @@ test "unordered list (-)" {
         \\- list item 3
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "unordered list (*)" {
@@ -655,9 +654,9 @@ test "unordered list (*)" {
         \\* list item 3
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "ordered list (1., 1., 1.)" {
@@ -686,9 +685,9 @@ test "ordered list (1., 1., 1.)" {
         \\1. list item 3
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "ordered list (1., 2., 3.)" {
@@ -717,9 +716,9 @@ test "ordered list (1., 2., 3.)" {
         \\3. list item 3
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "list with embedded elements" {
@@ -748,9 +747,9 @@ test "list with embedded elements" {
         \\* list item with **bold** and _italic_ text
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
 
 test "nested mixed ordered and unordered lists" {
@@ -785,7 +784,7 @@ test "nested mixed ordered and unordered lists" {
         \\3. third
     ;
 
-    const parsed = try zmd.parseAlloc(allocator, md, .{});
-    defer allocator.free(parsed);
-    try expectEqualStrings(html, parsed);
+    const parsed = try zmd.parseAlloc(t.allocator, md, .{});
+    defer t.allocator.free(parsed);
+    try t.expectEqualStrings(html, parsed);
 }
