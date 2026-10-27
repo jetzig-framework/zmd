@@ -260,7 +260,8 @@ test "parse underscores in block" {
 
 test "parse repeated whitespace" {
     // Used to be really slow
-    const parsed = try zmd.parseAlloc(allocator, " " ** 40_000, .{});
+    const whitespaces: [40_000]u8 = @splat(' ');
+    const parsed = try zmd.parseAlloc(allocator, &whitespaces, .{});
     allocator.free(parsed);
 }
 

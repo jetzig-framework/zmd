@@ -176,7 +176,7 @@ fn closeAllLists(self: *Parser) !void {
 }
 
 fn writeIndent(self: *Parser, spaces: usize) !void {
-    const pad = " " ** 32;
+    const pad: [32]u8 = @splat(' ');
     var n = spaces;
     while (n > 0) {
         const chunk = @min(n, pad.len);
