@@ -7,7 +7,8 @@ const OptimizeMode = std.builtin.OptimizeMode;
 const Module = Build.Module;
 const ResolvedTarget = Build.ResolvedTarget;
 const Dependency = Build.Dependency;
-const utils = @import("utils");
+const utils = @import("build/utils.zig");
+
 pub const Config = @import("src/Config.zig");
 
 pub fn build(b: *Build) void {
