@@ -8,6 +8,7 @@ pub const Fn = *const fn (*Writer, Node) anyerror![]const u8;
 root: Fn = Default.root,
 block: Fn = Default.block,
 link: Fn = Default.link,
+wikilink: Fn = Default.wikilink,
 image: Fn = Default.image,
 h1: Fn = Default.h1,
 h2: Fn = Default.h2,
@@ -34,6 +35,7 @@ pub const default: Config = .{
     .root = Default.root,
     .block = Default.block,
     .link = Default.link,
+    .wikilink = Default.wikilink,
     .image = Default.image,
     .h1 = Default.h1,
     .h2 = Default.h2,
@@ -96,6 +98,13 @@ const Default = struct {
     pub fn link(writer: *Writer, node: Node) ![]const u8 {
         try writer.print(
             \\<a href="{s}">
+        , .{node.href.?});
+        return "</a>";
+    }
+
+    pub fn wikilink(writer: *Writer, node: Node) ![]const u8 {
+        try writer.print(
+            \\<a class="wikilink" href="{s}">
         , .{node.href.?});
         return "</a>";
     }
